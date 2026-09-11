@@ -16,6 +16,10 @@ const attribution = config.maptilerKey
   ? '© <a href="https://www.maptiler.com/copyright/" target="_blank">MapTiler</a> © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>'
   : "© OpenStreetMap contributors";
 
+export const maptilerStyleUrl = config.maptilerKey
+  ? `https://api.maptiler.com/maps/streets-v2/style.json?key=${config.maptilerKey}`
+  : undefined;
+
 export const osmStyle: maplibregl.StyleSpecification = {
   version: 8,
   sources: {
@@ -35,3 +39,7 @@ export const osmStyle: maplibregl.StyleSpecification = {
     },
   ],
 };
+
+export const sdkStyle: string | maplibregl.StyleSpecification = config.maptilerKey
+  ? "streets-v2"
+  : osmStyle;

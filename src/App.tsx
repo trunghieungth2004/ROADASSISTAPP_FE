@@ -52,7 +52,7 @@ export default function App() {
       <AuthProvider>
         <BrowserRouter>
           <div className="flex h-dvh flex-col bg-neutral-100 text-neutral-900">
-            <div className="min-h-0 flex-1">
+            <div className="relative min-h-0 flex-1">
               <Routes>
                 <Route path="/" element={<RouteScreen />} />
                 <Route path="/login" element={<LoginScreen />} />

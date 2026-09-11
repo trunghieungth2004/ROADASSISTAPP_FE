@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Feature, FeatureCollection, Polygon } from "geojson";
-import * as maplibregl from "maplibre-gl";
+import * as maptilersdk from "@maptiler/sdk";
 import { type ApiFailure } from "../api/client";
 import {
   findRoute,
@@ -62,7 +62,7 @@ function handle(): HTMLDivElement {
   return el;
 }
 
-function drawRoute(map: maplibregl.Map, result: RouteSuccess | null): void {
+function drawRoute(map: maptilersdk.Map, result: RouteSuccess | null): void {
   const existing = map.getSource("route");
   if (!result) {
     if (existing && map.getLayer("route-line")) {
@@ -78,7 +78,7 @@ function drawRoute(map: maplibregl.Map, result: RouteSuccess | null): void {
     properties: {},
     geometry: result.geometry,
   };
-  const source = existing as maplibregl.GeoJSONSource | undefined;
+  const source = existing as maptilersdk.GeoJSONSource | undefined;
   if (source) {
     source.setData(feature);
   } else {
@@ -94,14 +94,14 @@ function drawRoute(map: maplibregl.Map, result: RouteSuccess | null): void {
       },
     });
   }
-  const bounds = new maplibregl.LngLatBounds();
+  const bounds = new maptilersdk.LngLatBounds();
   for (const [lng, lat] of result.geometry.coordinates) {
     bounds.extend([lng, lat]);
   }
   map.fitBounds(bounds, { padding: 70 });
 }
 
-function drawZones(map: maplibregl.Map, zones: HazardZone[]): void {
+function drawZones(map: maptilersdk.Map, zones: HazardZone[]): void {
   const existing = map.getSource("hazards");
   if (zones.length === 0) {
     if (existing && map.getLayer("hazard-fill")) {
@@ -123,7 +123,7 @@ function drawZones(map: maplibregl.Map, zones: HazardZone[]): void {
       },
     })),
   };
-  const source = existing as maplibregl.GeoJSONSource | undefined;
+  const source = existing as maptilersdk.GeoJSONSource | undefined;
   if (source) {
     source.setData(collection);
   } else {
@@ -143,8 +143,8 @@ function drawZones(map: maplibregl.Map, zones: HazardZone[]): void {
 export default function RouteScreen() {
   const { t } = useStrings();
   const { token } = useAuth();
-  const mapRef = useRef<maplibregl.Map | null>(null);
-  const markersRef = useRef<maplibregl.Marker[]>([]);
+  const mapRef = useRef<maptilersdk.Map | null>(null);
+  const markersRef = useRef<maptilersdk.Marker[]>([]);
   const [mapReady, setMapReady] = useState(false);
   const [mode, setMode] = useState<PickMode>(null);
   const [origin, setOrigin] = useState<LatLng | null>(null);
@@ -156,7 +156,7 @@ export default function RouteScreen() {
   const [busy, setBusy] = useState(false);
   const [nonce, setNonce] = useState(0);
 
-  const onLoad = useCallback((map: maplibregl.Map) => {
+  const onLoad = useCallback((map: maptilersdk.Map) => {
     mapRef.current = map;
     setMapReady(true);
   }, []);
@@ -185,11 +185,11 @@ export default function RouteScreen() {
       m.remove();
     }
     markersRef.current = [];
-    const track = (mk: maplibregl.Marker) => {
+    const track = (mk: maptilersdk.Marker) => {
       markersRef.current.push(mk);
     };
     if (origin) {
-      const mk = new maplibregl.Marker({
+      const mk = new maptilersdk.Marker({
         element: dot("#16a34a", "A"),
         draggable: true,
       })
@@ -211,13 +211,13 @@ export default function RouteScreen() {
     }
     stops.forEach((s, i) =>
       track(
-        new maplibregl.Marker({ element: dot("#2563eb", String(i + 1)) })
+        new maptilersdk.Marker({ element: dot("#2563eb", String(i + 1)) })
           .setLngLat([s.lng, s.lat])
           .addTo(map),
       ),
     );
     if (dest) {
-      const mk = new maplibregl.Marker({
+      const mk = new maptilersdk.Marker({
         element: dot("#dc2626", "B"),
         draggable: true,
       })
@@ -240,7 +240,7 @@ export default function RouteScreen() {
     if (result && !busy) {
       const coords = result.geometry.coordinates;
       const mid = coords[Math.floor(coords.length / 2)];
-      const mk = new maplibregl.Marker({
+      const mk = new maptilersdk.Marker({
         element: handle(),
         draggable: true,
       })
@@ -331,7 +331,7 @@ export default function RouteScreen() {
     }`;
 
   return (
-    <div className="relative h-full">
+    <div className="absolute inset-0">
       <MapView onLoad={onLoad} onClick={onClick} />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 max-h-[55%] overflow-y-auto p-3">
         <div className="pointer-events-auto mx-auto flex max-w-md flex-col gap-2 rounded-2xl bg-white/95 p-3 shadow-lg backdrop-blur">
