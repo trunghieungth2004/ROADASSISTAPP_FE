@@ -1,0 +1,48 @@
+import { api } from "./client";
+
+export type VehicleType = "SCOOTER" | "CUB" | "MANUAL";
+
+export type ConfigType = "SOLO" | "PASSENGER" | "CARGO";
+
+export type VehicleProfile = {
+  id: string;
+  type: string;
+  baseWidth: number;
+  baseHeight: number;
+  createdAt: string;
+};
+
+export type CreateProfilePayload = {
+  type: VehicleType;
+  baseWidth: number;
+  baseHeight: number;
+};
+
+export type RideConfigPayload = {
+  profileId: string;
+  configType: ConfigType;
+  estWidth?: number;
+  estHeight?: number;
+};
+
+export function listProfiles(token: string): Promise<VehicleProfile[]> {
+  return api.post<VehicleProfile[]>("/vehicleProfiles/all", {}, token);
+}
+
+export function createProfile(
+  payload: CreateProfilePayload,
+  token: string,
+): Promise<{ id: string }> {
+  return api.post<{ id: string }>("/vehicleProfiles", payload, token);
+}
+
+export function addRideConfig(
+  payload: RideConfigPayload,
+  token: string,
+): Promise<{ id: string }> {
+  return api.post<{ id: string }>(
+    "/vehicleProfiles/rideConfig",
+    payload,
+    token,
+  );
+}

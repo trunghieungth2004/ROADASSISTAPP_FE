@@ -1,0 +1,6 @@
+{
+  "$schema": "https://oxc.rs/docs/guide/usage/linter/config-file-reference.html",
+  "rules": {
+    "react/only-export-components": "off"
+  }
+}
