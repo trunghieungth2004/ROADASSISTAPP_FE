@@ -11,5 +11,5 @@ const app = initializeApp({
 export const auth = getAuth(app);
 
 if (config.authEmulatorUrl) {
-  connectAuthEmulator(auth, config.authEmulatorUrl);
+  connectAuthEmulator(auth, config.authEmulatorUrl, { disableWarnings: true });
 }

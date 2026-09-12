@@ -32,12 +32,18 @@ export function submitFlag(
 export function confirmFlag(
   flagId: string,
   token: string,
-): Promise<{ id: string; voteCount: number; status: string }> {
-  return api.post<{ id: string; voteCount: number; status: string }>(
-    "/flags/confirm",
-    { flagId },
-    token,
-  );
+): Promise<{
+  id: string;
+  voteCount: number;
+  status: string;
+  alreadyVoted?: boolean;
+}> {
+  return api.post<{
+    id: string;
+    voteCount: number;
+    status: string;
+    alreadyVoted?: boolean;
+  }>("/flags/confirm", {flagId}, token);
 }
 
 export function unflag(
@@ -54,4 +60,8 @@ export function flagsNear(
   token: string,
 ): Promise<Flag[]> {
   return api.post<Flag[]>("/flags/near", { lat, lng, radiusMeters }, token);
+}
+
+export function myFlags(token: string): Promise<Flag[]> {
+  return api.post<Flag[]>("/flags/mine", {}, token);
 }

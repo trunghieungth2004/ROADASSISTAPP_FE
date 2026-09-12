@@ -1,5 +1,7 @@
 import { config } from "../config";
 
+export const UNAUTHORIZED_EVENT = "roadassist:unauthorized";
+
 export type ApiEnvelope<T> = {
   statusCode: number;
   status: string;
@@ -13,6 +15,10 @@ export type ApiFailure = {
   message: string;
   errors?: unknown;
 };
+
+function notifyUnauthorized(): void {
+  window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT));
+}
 
 async function call<T>(
   path: string,
@@ -32,6 +38,9 @@ async function call<T>(
   const body = (await res.json()) as Partial<ApiEnvelope<T>> &
     Partial<ApiFailure>;
   if (!res.ok) {
+    if (res.status === 401 || body.statusCode === 401) {
+      notifyUnauthorized();
+    }
     throw {
       statusCode: body.statusCode ?? res.status,
       message: body.message ?? "Request failed",

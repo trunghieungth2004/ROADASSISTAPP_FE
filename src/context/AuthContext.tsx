@@ -2,11 +2,13 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useState,
   type ReactNode,
 } from "react";
-import { signOut as firebaseSignOut } from "firebase/auth";
+import { onAuthStateChanged, signOut as firebaseSignOut } from "firebase/auth";
 import { auth } from "../auth/firebase";
+import { UNAUTHORIZED_EVENT } from "../api/client";
 
 type Session = {
   uid: string;
@@ -18,6 +20,7 @@ type AuthState = {
   token: string | null;
   signIn: (uid: string, token: string) => void;
   signOut: () => void;
+  refreshToken: () => Promise<string | null>;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -42,15 +45,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   }, []);
 
-  const signOut = useCallback(async () => {
+  const clearSession = useCallback(() => {
     setSession(null);
     localStorage.removeItem(STORAGE_KEY);
-    await firebaseSignOut(auth);
   }, []);
+
+  const signOut = useCallback(async () => {
+    clearSession();
+    await firebaseSignOut(auth);
+  }, [clearSession]);
+
+  const refreshToken = useCallback(async (): Promise<string | null> => {
+    const user = auth.currentUser;
+    if (!user) {
+      return null;
+    }
+    const token = await user.getIdToken();
+    signIn(user.uid, token);
+    return token;
+  }, [signIn]);
+
+  useEffect(
+    () =>
+      onAuthStateChanged(auth, (user) => {
+        if (!user) {
+          clearSession();
+          return;
+        }
+        setSession((prev) => {
+          if (prev && prev.uid === user.uid) {
+            return prev;
+          }
+          void user.getIdToken().then((token) => signIn(user.uid, token));
+          return prev;
+        });
+      }),
+    [clearSession, signIn],
+  );
+
+  useEffect(() => {
+    const onUnauthorized = (): void => {
+      clearSession();
+      void firebaseSignOut(auth);
+    };
+    window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
+    return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
+  }, [clearSession]);
 
   return (
     <AuthContext.Provider
-      value={{ uid: session?.uid ?? null, token: session?.token ?? null, signIn, signOut }}
+      value={{
+        uid: session?.uid ?? null,
+        token: session?.token ?? null,
+        signIn,
+        signOut,
+        refreshToken,
+      }}
     >
       {children}
     </AuthContext.Provider>

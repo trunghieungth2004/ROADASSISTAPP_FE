@@ -51,5 +51,5 @@ export default function MapView({ onLoad, onClick }: MapViewProps) {
     };
   }, []);
 
-  return <div ref={ref} className="absolute inset-0" style={{ position: "absolute", inset: 0 }} />;
+  return <div ref={ref} style={{ position: "absolute", inset: 0 }} />;
 }

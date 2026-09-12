@@ -1,4 +1,16 @@
-import { useCallback, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import Chip from "@mui/material/Chip";
+import Container from "@mui/material/Container";
+import MenuItem from "@mui/material/MenuItem";
+import TextField from "@mui/material/TextField";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import Typography from "@mui/material/Typography";
 import { toMessage } from "../api/client";
 import {
   alleysNear,
@@ -9,14 +21,17 @@ import {
 import {
   confirmFlag,
   flagsNear,
+  myFlags,
   submitFlag,
   unflag,
   type Flag,
   type FlagType,
 } from "../api/flags";
 import MapView, { type MapClick } from "../components/MapView";
+import { flagStatusColor, flagStatusLabel } from "../components/flagStatus";
 import { useAuth } from "../context/AuthContext";
 import { useStrings } from "../context/LanguageContext";
+import { hasVoted, markVoted } from "../storage/votedFlags";
 import { mapDefaults } from "../map/style";
 
 const FLAG_TYPES: FlagType[] = ["FLOOD", "OBSTRUCTION", "ACCIDENT"];
@@ -26,7 +41,10 @@ export default function HazardsScreen() {
   const { t } = useStrings();
   const { token, uid } = useAuth();
   const [point, setPoint] = useState({ lat: mapDefaults.center[1], lng: mapDefaults.center[0] });
+  const [scope, setScope] = useState<"nearby" | "mine">("nearby");
   const [flags, setFlags] = useState<Flag[]>([]);
+  const [mine, setMine] = useState<Flag[]>([]);
+  const [votedIds, setVotedIds] = useState<Set<string>>(new Set());
   const [segments, setSegments] = useState<AlleySegment[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,13 +105,39 @@ export default function HazardsScreen() {
     }
   }
 
+  const reloadMine = useCallback(async () => {
+    if (!token) {
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      setMine(await myFlags(token));
+    } catch (err) {
+      setError(toMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (scope === "mine") {
+      void reloadMine();
+    }
+  }, [scope, reloadMine]);
+
   async function onConfirm(flagId: string) {
     if (!token) {
       return;
     }
     setError(null);
     try {
-      await confirmFlag(flagId, token);
+      const res = await confirmFlag(flagId, token);
+      markVoted(flagId);
+      setVotedIds((prev) => new Set(prev).add(flagId));
+      setNotice(
+        res.alreadyVoted ? t.hazards.alreadyVoted : t.hazards.confirmedMsg,
+      );
       await reload();
     } catch (err) {
       setError(toMessage(err));
@@ -107,7 +151,11 @@ export default function HazardsScreen() {
     setError(null);
     try {
       await unflag(flagId, token);
-      await reload();
+      if (scope === "mine") {
+        await reloadMine();
+      } else {
+        await reload();
+      }
     } catch (err) {
       setError(toMessage(err));
     }
@@ -132,166 +180,255 @@ export default function HazardsScreen() {
     }
   }
 
-  const input =
-    "w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-base outline-none focus:border-green-700";
-  const label = "text-xs font-medium text-neutral-500";
-  const card = "rounded-2xl bg-white p-4 shadow-sm";
-
   return (
-    <div className="mx-auto max-w-md p-4">
-      <h1 className="text-lg font-semibold">{t.hazards.title}</h1>
-      <p className="mt-1 text-xs text-neutral-500">{t.hazards.pickPoint}</p>
-      <div className="relative mt-2 h-56 overflow-hidden rounded-2xl">
-        <MapView onClick={onPick} />
-      </div>
-      <button
-        type="button"
-        onClick={() => void reload()}
-        disabled={loading}
-        className="mt-2 w-full rounded-xl bg-green-700 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+    <Container maxWidth="sm" sx={{ py: 2, overflowY: "auto", height: "100%" }}>
+      <Typography variant="h6">{t.hazards.title}</Typography>
+      <ToggleButtonGroup
+        value={scope}
+        exclusive
+        fullWidth
+        size="small"
+        sx={{ mt: 1 }}
+        onChange={(_, v: "nearby" | "mine" | null) => {
+          if (v) {
+            setScope(v);
+          }
+        }}
       >
-        {point.lat.toFixed(5)}, {point.lng.toFixed(5)}
-      </button>
+        <ToggleButton value="nearby">{t.hazards.tabsNearby}</ToggleButton>
+        <ToggleButton value="mine">{t.hazards.tabsMine}</ToggleButton>
+      </ToggleButtonGroup>
       {error && (
-        <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
+        <Alert severity="error" sx={{ mt: 1 }}>
           {error}
-        </p>
+        </Alert>
       )}
       {notice && (
-        <p className="mt-2 rounded-xl bg-green-50 px-3 py-2 text-sm text-green-700">
+        <Alert severity="success" sx={{ mt: 1 }}>
           {notice}
-        </p>
+        </Alert>
       )}
-      <div className="mt-3 flex flex-col gap-3">
+      {scope === "mine" ? (
+        <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+          {mine.length === 0 && !loading && (
+            <Typography variant="body2" color="text.secondary">
+              {t.hazards.myEmpty}
+            </Typography>
+          )}
+          {mine.map((f) => (
+            <Card key={f.id}>
+              <CardContent>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <Typography variant="subtitle1">{f.type}</Typography>
+                  <Chip
+                    label={flagStatusLabel(f.status, t)}
+                    size="small"
+                    sx={{ bgcolor: flagStatusColor(f.status), color: "#fff" }}
+                  />
+                </Box>
+                <Typography variant="caption" color="text.secondary">
+                  {f.voteCount ?? 0} {t.hazards.votes} · {f.lat.toFixed(5)},{" "}
+                  {f.lng.toFixed(5)}
+                </Typography>
+                {f.note && (
+                  <Typography variant="body2" sx={{ mt: 0.5 }}>
+                    {f.note}
+                  </Typography>
+                )}
+                {f.status !== "3" && (
+                  <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => void onUnflag(f.id)}
+                    >
+                      {t.hazards.unflag}
+                    </Button>
+                  </Box>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </Box>
+      ) : (
+        <>
+      <Typography variant="caption" color="text.secondary">
+        {t.hazards.pickPoint}
+      </Typography>
+      <Box sx={{ position: "relative", height: 224, mt: 1, borderRadius: 4, overflow: "hidden" }}>
+        <MapView onClick={onPick} />
+      </Box>
+      <Button
+        variant="contained"
+        fullWidth
+        disabled={loading}
+        onClick={() => void reload()}
+        sx={{ mt: 1 }}
+      >
+        {point.lat.toFixed(5)}, {point.lng.toFixed(5)}
+      </Button>
+      {error && (
+        <Alert severity="error" sx={{ mt: 1 }}>
+          {error}
+        </Alert>
+      )}
+      {notice && (
+        <Alert severity="success" sx={{ mt: 1 }}>
+          {notice}
+        </Alert>
+      )}
+      <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
         {flags.length === 0 && !loading && (
-          <p className="text-sm text-neutral-500">{t.hazards.empty}</p>
+          <Typography variant="body2" color="text.secondary">
+            {t.hazards.empty}
+          </Typography>
         )}
         {flags.map((f) => (
-          <div key={f.id} className={card}>
-            <div className="flex items-center justify-between text-sm">
-              <span className="font-semibold">{f.type}</span>
-              <span className="text-neutral-500">
-                {f.voteCount ?? 0} {t.hazards.votes} · {f.status}
-              </span>
-            </div>
-            {f.note && <p className="mt-1 text-sm">{f.note}</p>}
-            <div className="mt-2 flex gap-2">
-              <button
-                type="button"
-                onClick={() => void onConfirm(f.id)}
-                className="rounded-lg bg-green-100 px-3 py-1 text-xs font-semibold text-green-800"
-              >
-                {t.hazards.confirm}
-              </button>
-              {f.reporterId === uid && (
-                <button
-                  type="button"
-                  onClick={() => void onUnflag(f.id)}
-                  className="rounded-lg bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-600"
-                >
-                  {t.hazards.unflag}
-                </button>
+          <Card key={f.id}>
+            <CardContent>
+              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                <Typography variant="subtitle1">{f.type}</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {f.voteCount ?? 0} {t.hazards.votes} · {f.status}
+                </Typography>
+              </Box>
+              {f.note && (
+                <Typography variant="body2" sx={{ mt: 0.5 }}>
+                  {f.note}
+                </Typography>
               )}
-            </div>
-          </div>
+              <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                {f.reporterId !== uid &&
+                  !votedIds.has(f.id) &&
+                  !hasVoted(f.id) && (
+                    <Button
+                      size="small"
+                      variant="contained"
+                      color="success"
+                      onClick={() => void onConfirm(f.id)}
+                    >
+                      {t.hazards.confirm}
+                    </Button>
+                  )}
+                {f.reporterId === uid && (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => void onUnflag(f.id)}
+                  >
+                    {t.hazards.unflag}
+                  </Button>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
         ))}
-        <section className={card}>
-          <h2 className="text-sm font-semibold">{t.hazards.submitFlag}</h2>
-          <form onSubmit={onSubmitFlag} className="mt-2 flex flex-col gap-2">
-            <label className={label}>
-              <select
-                className={input}
+        <Card>
+          <CardContent>
+            <Typography variant="subtitle1">{t.hazards.submitFlag}</Typography>
+            <Box
+              component="form"
+              onSubmit={onSubmitFlag}
+              sx={{ mt: 1, display: "flex", flexDirection: "column", gap: 2 }}
+            >
+              <TextField
+                select
+                label={t.flag.type}
                 value={flagType}
                 onChange={(e) => setFlagType(e.target.value as FlagType)}
+                fullWidth
               >
                 {FLAG_TYPES.map((v) => (
-                  <option key={v} value={v}>
+                  <MenuItem key={v} value={v}>
                     {v}
-                  </option>
+                  </MenuItem>
                 ))}
-              </select>
-            </label>
-            <label className={label}>
-              {t.hazards.radius}
-              <input
-                className={input}
+              </TextField>
+              <TextField
+                label={t.hazards.radius}
                 type="number"
-                min="25"
-                max="3000"
+                slotProps={{ htmlInput: { min: 25, max: 3000 } }}
                 value={radius}
                 onChange={(e) => setRadius(e.target.value)}
+                fullWidth
               />
-            </label>
-            <label className={label}>
-              {t.hazards.note}
-              <input
-                className={input}
+              <TextField
+                label={t.hazards.note}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
+                fullWidth
               />
-            </label>
-            <button
-              type="submit"
-              className="rounded-xl bg-green-700 px-3 py-2 text-sm font-semibold text-white"
+              <Button type="submit" variant="contained">
+                {t.common.save}
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <Typography variant="subtitle1">
+              {t.hazards.alleys} ({segments.length})
+            </Typography>
+            {segments.length === 0 && (
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                {t.hazards.noAlleys}
+              </Typography>
+            )}
+            {segments.map((s) => (
+              <Box
+                key={s.id}
+                sx={{
+                  mt: 1,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  bgcolor: "action.hover",
+                  borderRadius: 2,
+                  px: 1.5,
+                  py: 1,
+                }}
+              >
+                <Typography variant="body2">{s.tier}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {t.vehicle.width}: {s.baseWidth} m
+                </Typography>
+              </Box>
+            ))}
+            <Box
+              component="form"
+              onSubmit={onSubmitAlley}
+              sx={{ mt: 1, display: "flex", flexDirection: "column", gap: 2 }}
             >
-              {t.common.save}
-            </button>
-          </form>
-        </section>
-        <section className={card}>
-          <h2 className="text-sm font-semibold">
-            {t.hazards.alleys} ({segments.length})
-          </h2>
-          {segments.length === 0 && (
-            <p className="mt-1 text-sm text-neutral-500">{t.hazards.noAlleys}</p>
-          )}
-          {segments.map((s) => (
-            <div
-              key={s.id}
-              className="mt-2 flex items-center justify-between rounded-xl bg-neutral-50 px-3 py-2 text-sm"
-            >
-              <span className="font-medium">{s.tier}</span>
-              <span className="text-neutral-500">
-                {t.vehicle.width}: {s.baseWidth} m
-              </span>
-            </div>
-          ))}
-          <form onSubmit={onSubmitAlley} className="mt-2 flex flex-col gap-2">
-            <label className={label}>
-              {t.vehicle.widthMeters}
-              <input
-                className={input}
+              <TextField
+                label={t.vehicle.widthMeters}
                 type="number"
-                step="0.05"
-                min="0.1"
                 required
+                slotProps={{ htmlInput: { step: "0.05", min: "0.1" } }}
                 value={baseWidth}
                 onChange={(e) => setBaseWidth(e.target.value)}
+                fullWidth
               />
-            </label>
-            <label className={label}>
-              {t.hazards.tier}
-              <select
-                className={input}
+              <TextField
+                select
+                label={t.hazards.tier}
                 value={tier}
                 onChange={(e) => setTier(e.target.value as Tier)}
+                fullWidth
               >
                 {TIERS.map((v) => (
-                  <option key={v} value={v}>
+                  <MenuItem key={v} value={v}>
                     {v}
-                  </option>
+                  </MenuItem>
                 ))}
-              </select>
-            </label>
-            <button
-              type="submit"
-              className="rounded-xl bg-green-700 px-3 py-2 text-sm font-semibold text-white"
-            >
-              {t.hazards.submitAlley}
-            </button>
-          </form>
-        </section>
-      </div>
-    </div>
+              </TextField>
+              <Button type="submit" variant="contained">
+                {t.hazards.submitAlley}
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+      </Box>
+        </>
+      )}
+    </Container>
   );
 }

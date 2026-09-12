@@ -1,4 +1,13 @@
 import { useEffect, useState, type FormEvent } from "react";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import Container from "@mui/material/Container";
+import MenuItem from "@mui/material/MenuItem";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import { toMessage } from "../api/client";
 import {
   addRideConfig,
@@ -10,14 +19,14 @@ import {
 } from "../api/vehicles";
 import { useAuth } from "../context/AuthContext";
 import { useStrings } from "../context/LanguageContext";
-import { setRoutingWidth } from "../vehicleWidth";
+import { setRoutingWidth } from "../storage/vehicleWidth";
 
 const TYPES: VehicleType[] = ["SCOOTER", "CUB", "MANUAL"];
 const CONFIGS: ConfigType[] = ["SOLO", "PASSENGER", "CARGO"];
 
 export default function VehicleScreen() {
-  const { t, lang, toggle } = useStrings();
-  const { token, signOut } = useAuth();
+  const { t } = useStrings();
+  const { token } = useAuth();
   const [profiles, setProfiles] = useState<VehicleProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -100,176 +109,171 @@ export default function VehicleScreen() {
     }
   }
 
-  const input =
-    "w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-base outline-none focus:border-green-700";
-  const label = "text-xs font-medium text-neutral-500";
-  const card = "rounded-2xl bg-white p-4 shadow-sm";
-
   return (
-    <div className="mx-auto max-w-md p-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">{t.vehicle.title}</h1>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={toggle}
-            className="rounded-full border border-neutral-300 px-3 py-1 text-xs font-medium"
-          >
-            {lang === "en" ? "VI" : "EN"}
-          </button>
-          <button
-            type="button"
-            onClick={() => void signOut()}
-            className="rounded-full border border-neutral-300 px-3 py-1 text-xs font-medium"
-          >
-            ×
-          </button>
-        </div>
-      </div>
-      {loading && <p className="mt-4 text-sm text-neutral-500">{t.common.loading}</p>}
+    <Container maxWidth="sm" sx={{ py: 2, overflowY: "auto", height: "100%" }}>
+      <Typography variant="h6">{t.vehicle.title}</Typography>
+      {loading && (
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+          {t.common.loading}
+        </Typography>
+      )}
       {error && (
-        <p className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
+        <Alert severity="error" sx={{ mt: 2 }}>
           {error}
-        </p>
+        </Alert>
       )}
       {notice && (
-        <p className="mt-4 rounded-xl bg-green-50 px-3 py-2 text-sm text-green-700">
+        <Alert severity="success" sx={{ mt: 2 }}>
           {notice}
-        </p>
+        </Alert>
       )}
       {!loading && !error && (
-        <div className="mt-4 flex flex-col gap-4">
-          <section className={card}>
-            <h2 className="text-sm font-semibold">{t.vehicle.profiles}</h2>
-            {profiles.length === 0 && (
-              <p className="mt-2 text-sm text-neutral-500">{t.vehicle.none}</p>
-            )}
-            {profiles.map((p) => (
-              <div
-                key={p.id}
-                className="mt-2 flex items-center justify-between rounded-xl bg-neutral-50 px-3 py-2 text-sm"
+        <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+          <Card>
+            <CardContent>
+              <Typography variant="subtitle1">{t.vehicle.profiles}</Typography>
+              {profiles.length === 0 && (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mt: 1 }}
+                >
+                  {t.vehicle.none}
+                </Typography>
+              )}
+              {profiles.map((p) => (
+                <Box
+                  key={p.id}
+                  sx={{
+                    mt: 1,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    bgcolor: "action.hover",
+                    borderRadius: 2,
+                    px: 1.5,
+                    py: 1,
+                  }}
+                >
+                  <Typography variant="body2">{p.type}</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {t.vehicle.width}: {p.baseWidth} m
+                  </Typography>
+                </Box>
+              ))}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent>
+              <Typography variant="subtitle1">{t.vehicle.create}</Typography>
+              <Box
+                component="form"
+                onSubmit={onCreate}
+                sx={{ mt: 1, display: "flex", flexDirection: "column", gap: 2 }}
               >
-                <span className="font-medium">{p.type}</span>
-                <span className="text-neutral-500">
-                  {t.vehicle.width}: {p.baseWidth} m
-                </span>
-              </div>
-            ))}
-          </section>
-          <section className={card}>
-            <h2 className="text-sm font-semibold">{t.vehicle.create}</h2>
-            <form onSubmit={onCreate} className="mt-2 flex flex-col gap-2">
-              <label className={label}>
-                {t.vehicle.type}
-                <select
-                  className={input}
+                <TextField
+                  select
+                  label={t.vehicle.type}
                   value={type}
                   onChange={(e) => setType(e.target.value as VehicleType)}
+                  fullWidth
                 >
                   {TYPES.map((v) => (
-                    <option key={v} value={v}>
+                    <MenuItem key={v} value={v}>
                       {v}
-                    </option>
+                    </MenuItem>
                   ))}
-                </select>
-              </label>
-              <label className={label}>
-                {t.vehicle.widthMeters}
-                <input
-                  className={input}
+                </TextField>
+                <TextField
+                  label={t.vehicle.widthMeters}
                   type="number"
-                  step="0.05"
-                  min="0.1"
                   required
+                  slotProps={{ htmlInput: { step: "0.05", min: "0.1" } }}
                   value={baseWidth}
                   onChange={(e) => setBaseWidth(e.target.value)}
+                  fullWidth
                 />
-              </label>
-              <label className={label}>
-                {t.vehicle.height}
-                <input
-                  className={input}
+                <TextField
+                  label={t.vehicle.height}
                   type="number"
-                  step="0.05"
-                  min="0.1"
                   required
+                  slotProps={{ htmlInput: { step: "0.05", min: "0.1" } }}
                   value={baseHeight}
                   onChange={(e) => setBaseHeight(e.target.value)}
+                  fullWidth
                 />
-              </label>
-              <button
-                type="submit"
-                className="rounded-xl bg-green-700 px-3 py-2 text-sm font-semibold text-white"
-              >
-                {t.common.save}
-              </button>
-            </form>
-          </section>
+                <Button type="submit" variant="contained">
+                  {t.common.save}
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
           {profiles.length > 0 && (
-            <section className={card}>
-              <h2 className="text-sm font-semibold">{t.vehicle.rideSetup}</h2>
-              <form onSubmit={onRideConfig} className="mt-2 flex flex-col gap-2">
-                <label className={label}>
-                  {t.vehicle.profiles}
-                  <select
-                    className={input}
+            <Card>
+              <CardContent>
+                <Typography variant="subtitle1">
+                  {t.vehicle.rideSetup}
+                </Typography>
+                <Box
+                  component="form"
+                  onSubmit={onRideConfig}
+                  sx={{
+                    mt: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 2,
+                  }}
+                >
+                  <TextField
+                    select
+                    label={t.vehicle.profiles}
                     value={profileId}
                     onChange={(e) => setProfileId(e.target.value)}
+                    fullWidth
                   >
                     {profiles.map((p) => (
-                      <option key={p.id} value={p.id}>
+                      <MenuItem key={p.id} value={p.id}>
                         {p.type} · {p.baseWidth} m
-                      </option>
+                      </MenuItem>
                     ))}
-                  </select>
-                </label>
-                <label className={label}>
-                  {t.vehicle.load}
-                  <select
-                    className={input}
+                  </TextField>
+                  <TextField
+                    select
+                    label={t.vehicle.load}
                     value={configType}
                     onChange={(e) => setConfigType(e.target.value as ConfigType)}
+                    fullWidth
                   >
                     {CONFIGS.map((c) => (
-                      <option key={c} value={c}>
+                      <MenuItem key={c} value={c}>
                         {c}
-                      </option>
+                      </MenuItem>
                     ))}
-                  </select>
-                </label>
-                <label className={label}>
-                  {t.vehicle.estWidth}
-                  <input
-                    className={input}
+                  </TextField>
+                  <TextField
+                    label={t.vehicle.estWidth}
                     type="number"
-                    step="0.05"
-                    min="0.1"
+                    slotProps={{ htmlInput: { step: "0.05", min: "0.1" } }}
                     value={estWidth}
                     onChange={(e) => setEstWidth(e.target.value)}
+                    fullWidth
                   />
-                </label>
-                <label className={label}>
-                  {t.vehicle.estHeight}
-                  <input
-                    className={input}
+                  <TextField
+                    label={t.vehicle.estHeight}
                     type="number"
-                    step="0.05"
-                    min="0.1"
+                    slotProps={{ htmlInput: { step: "0.05", min: "0.1" } }}
                     value={estHeight}
                     onChange={(e) => setEstHeight(e.target.value)}
+                    fullWidth
                   />
-                </label>
-                <button
-                  type="submit"
-                  className="rounded-xl bg-green-700 px-3 py-2 text-sm font-semibold text-white"
-                >
-                  {t.vehicle.apply}
-                </button>
-              </form>
-            </section>
+                  <Button type="submit" variant="contained">
+                    {t.vehicle.apply}
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
           )}
-        </div>
+        </Box>
       )}
-    </div>
+    </Container>
   );
 }

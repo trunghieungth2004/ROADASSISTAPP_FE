@@ -1,11 +1,36 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Container from "@mui/material/Container";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import { auth } from "../auth/firebase";
 import { register } from "../api/auth";
 import { toMessage } from "../api/client";
+import { config } from "../config";
 import { useAuth } from "../context/AuthContext";
 import { useStrings } from "../context/LanguageContext";
+import { mapDefaults } from "../map/style";
+
+const TILE_ZOOM = 14;
+
+function mapTileUrl(): string {
+  const n = 2 ** TILE_ZOOM;
+  const [lng, lat] = mapDefaults.center;
+  const x = Math.floor(((lng + 180) / 360) * n);
+  const rad = (lat * Math.PI) / 180;
+  const y = Math.floor(
+    ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n,
+  );
+  return config.maptilerKey
+    ? `https://api.maptiler.com/maps/streets-v2/${TILE_ZOOM}/${x}/${y}.png?key=${config.maptilerKey}`
+    : `https://tile.openstreetmap.org/${TILE_ZOOM}/${x}/${y}.png`;
+}
 
 export default function LoginScreen() {
   const { t } = useStrings();
@@ -41,64 +66,150 @@ export default function LoginScreen() {
     }
   }
 
-  const input =
-    "w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-base outline-none focus:border-green-700";
-
   return (
-    <div className="mx-auto flex min-h-full max-w-md flex-col justify-center p-4">
-      <h1 className="text-xl font-bold text-green-800">{t.appName}</h1>
-      <p className="mt-1 text-sm font-medium text-neutral-600">
-        {mode === "login" ? t.auth.signIn : t.auth.createAccount}
-      </p>
-      <form onSubmit={onSubmit} className="mt-4 flex flex-col gap-3">
-        {mode === "register" && (
-          <input
-            className={input}
-            placeholder={t.auth.displayName}
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            autoComplete="name"
-          />
-        )}
-        <input
-          className={input}
-          placeholder={t.auth.email}
-          type="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          autoComplete="email"
-        />
-        <input
-          className={input}
-          placeholder={t.auth.password}
-          type="password"
-          required
-          minLength={6}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete={mode === "login" ? "current-password" : "new-password"}
-        />
-        {error && (
-          <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
-          </p>
-        )}
-        <button
-          type="submit"
-          disabled={busy}
-          className="rounded-xl bg-green-700 px-3 py-2.5 text-base font-semibold text-white disabled:opacity-50"
-        >
-          {mode === "login" ? t.auth.signIn : t.auth.createAccount}
-        </button>
-      </form>
-      <button
-        type="button"
-        onClick={() => setMode(mode === "login" ? "register" : "login")}
-        className="mt-3 text-sm font-medium text-green-700"
+    <Box sx={{ height: "100%", display: "flex" }}>
+      <Box
+        sx={{
+          display: { xs: "none", md: "block" },
+          position: "relative",
+          overflow: "hidden",
+          flex: "1 1 55%",
+        }}
       >
-        {mode === "login" ? t.auth.needAccount : t.auth.haveAccount}
-      </button>
-    </div>
+        <Box
+          aria-hidden
+          sx={{
+            position: "absolute",
+            inset: "-10%",
+            backgroundImage: `url("${mapTileUrl()}")`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            filter: "blur(14px)",
+            transform: "scale(1.2)",
+          }}
+        />
+        <Box
+          aria-hidden
+          sx={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "linear-gradient(160deg, rgba(2,132,199,0.62), rgba(2,132,199,0.05) 75%)",
+          }}
+        />
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            p: 5,
+            pointerEvents: "none",
+          }}
+        >
+          <Box>
+            <Typography variant="h4" component="h1" color="#ffffff">
+              {t.appName}
+            </Typography>
+            <Typography sx={{ color: "rgba(255,255,255,0.92)", mt: 1 }}>
+              {t.home.subtitle}
+            </Typography>
+          </Box>
+          <svg
+            viewBox="0 0 220 140"
+            width="260"
+            height="165"
+            aria-hidden
+            style={{ alignSelf: "flex-start" }}
+          >
+            <path
+              d="M12 126 C 56 122, 62 80, 96 80 S 168 44, 200 22"
+              fill="none"
+              stroke="rgba(255,255,255,0.85)"
+              strokeWidth="5"
+              strokeLinecap="round"
+              strokeDasharray="1 14"
+            />
+            <circle
+              cx="200"
+              cy="22"
+              r="12"
+              fill="#fbbf24"
+              stroke="#ffffff"
+              strokeWidth="3"
+            />
+            <circle cx="200" cy="22" r="4.5" fill="#451a03" />
+          </svg>
+        </Box>
+      </Box>
+      <Box
+        sx={{
+          flex: "1 1 45%",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          px: { xs: 3, md: 6 },
+          py: 3,
+        }}
+      >
+        <Container maxWidth="xs" disableGutters>
+          <Typography
+            variant="h5"
+            component="h1"
+            color="primary"
+            sx={{ display: { md: "none" } }}
+          >
+            {t.appName}
+          </Typography>
+          <Tabs
+            value={mode}
+            onChange={(_, v: "login" | "register") => setMode(v)}
+            sx={{ mt: { xs: 1, md: 0 } }}
+          >
+            <Tab value="login" label={t.auth.signIn} />
+            <Tab value="register" label={t.auth.createAccount} />
+          </Tabs>
+          <Box
+            component="form"
+            onSubmit={onSubmit}
+            sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2 }}
+          >
+            {mode === "register" && (
+              <TextField
+                label={t.auth.displayName}
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                autoComplete="name"
+                fullWidth
+              />
+            )}
+            <TextField
+              label={t.auth.email}
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              fullWidth
+            />
+            <TextField
+              label={t.auth.password}
+              type="password"
+              required
+              slotProps={{ htmlInput: { minLength: 6 } }}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
+              fullWidth
+            />
+            {error && <Alert severity="error">{error}</Alert>}
+            <Button type="submit" variant="contained" disabled={busy} fullWidth>
+              {mode === "login" ? t.auth.signIn : t.auth.createAccount}
+            </Button>
+          </Box>
+        </Container>
+      </Box>
+    </Box>
   );
 }
