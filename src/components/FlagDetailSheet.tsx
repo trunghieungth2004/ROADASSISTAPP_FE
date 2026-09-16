@@ -12,8 +12,10 @@ type FlagDetailSheetProps = {
   isOwn: boolean;
   busy: boolean;
   voted: boolean;
+  denied: boolean;
   onClose: () => void;
   onConfirm: (flagId: string) => void;
+  onDeny: (flagId: string) => void;
   onRemove: (flagId: string) => void;
 };
 
@@ -22,8 +24,10 @@ export default function FlagDetailSheet({
   isOwn,
   busy,
   voted,
+  denied,
   onClose,
   onConfirm,
+  onDeny,
   onRemove,
 }: FlagDetailSheetProps) {
   const { t } = useStrings();
@@ -67,6 +71,15 @@ export default function FlagDetailSheet({
                 onClick={() => onConfirm(flag.id)}
               >
                 {t.flag.confirm}
+              </Button>
+            )}
+            {flag.status === "1" && !isOwn && !denied && (
+              <Button
+                variant="outlined"
+                disabled={busy}
+                onClick={() => onDeny(flag.id)}
+              >
+                {t.flag.deny}
               </Button>
             )}
             {isOwn && flag.status !== "3" && (

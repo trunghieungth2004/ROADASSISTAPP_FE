@@ -15,6 +15,7 @@ import { toMessage } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { useStrings } from "../context/LanguageContext";
 import { brandTileUrl } from "../map/style";
+import { hasChosenRole } from "../storage/roleChoice";
 
 export default function LoginScreen() {
   const { t } = useStrings();
@@ -42,7 +43,7 @@ export default function LoginScreen() {
       const cred = await signInWithEmailAndPassword(auth, email, password);
       const token = await cred.user.getIdToken();
       signIn(cred.user.uid, token);
-      navigate("/");
+      navigate(hasChosenRole() ? "/" : "/roles");
     } catch (err) {
       setError(toMessage(err));
     } finally {

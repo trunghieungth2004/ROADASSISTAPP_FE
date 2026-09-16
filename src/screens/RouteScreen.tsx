@@ -17,11 +17,14 @@ import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import AddAlertIcon from "@mui/icons-material/AddAlert";
+import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import SaveIcon from "@mui/icons-material/Save";
+import SearchIcon from "@mui/icons-material/Search";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
 import { type ApiFailure } from "../api/client";
 import {
   confirmFlag,
+  denyFlag,
   submitFlag,
   unflag,
   type Flag,
@@ -33,11 +36,12 @@ import FlagSheet, { type FlagReport } from "../components/FlagSheet";
 import MapView, { type MapClick } from "../components/MapView";
 import NearbyFlags from "../components/NearbyFlags";
 import PlaceField from "../components/PlaceField";
+import SavedRoutesSheet from "../components/SavedRoutesSheet";
 import { useAuth } from "../context/AuthContext";
 import { useStrings } from "../context/LanguageContext";
 import { useRoutePlanner } from "../hooks/useRoutePlanner";
 import { drawRoutePills } from "../services/routeView";
-import { hasVoted, markVoted } from "../storage/votedFlags";
+import { hasDenied, hasVoted, markDenied, markVoted } from "../storage/votedFlags";
 
 export default function RouteScreen() {
   const { t, lang } = useStrings();
@@ -53,11 +57,13 @@ export default function RouteScreen() {
   const [flagBusy, setFlagBusy] = useState(false);
   const [selected, setSelected] = useState<Flag | null>(null);
   const [votedIds, setVotedIds] = useState<Set<string>>(new Set());
+  const [deniedIds, setDeniedIds] = useState<Set<string>>(new Set());
   const [flagsKey, setFlagsKey] = useState(0);
   const [snack, setSnack] = useState<string | null>(null);
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveName, setSaveName] = useState("");
   const [saveBusy, setSaveBusy] = useState(false);
+  const [savedOpen, setSavedOpen] = useState(false);
 
   const onClick = useCallback(
     (p: MapClick) => {
@@ -154,8 +160,27 @@ export default function RouteScreen() {
     }
   }
 
-  async function onRemoveFlag(flagId: string) {
+  async function onDenyFlag(flagId: string) {
     if (!token) {
+      return;
+    }
+    setFlagBusy(true);
+    try {
+      const res = await denyFlag(flagId, token);
+      markDenied(flagId);
+      setDeniedIds((prev) => new Set(prev).add(flagId));
+      setSelected(null);
+      setFlagsKey((k) => k + 1);
+      setSnack(res.alreadyVoted ? t.flag.alreadyDenied : t.flag.deniedMsg);
+    } catch (err) {
+      const f = err as ApiFailure;
+      setSnack(f.message);
+    } finally {
+      setFlagBusy(false);
+    }
+  }
+
+  async function onRemoveFlag(flagId: string) {    if (!token) {
       return;
     }
     setFlagBusy(true);
@@ -547,9 +572,29 @@ export default function RouteScreen() {
           selected !== null &&
           (votedIds.has(selected.id) || hasVoted(selected.id))
         }
+        denied={
+          selected !== null &&
+          (deniedIds.has(selected.id) || hasDenied(selected.id))
+        }
         onClose={() => setSelected(null)}
         onConfirm={onConfirmFlag}
+        onDeny={onDenyFlag}
         onRemove={onRemoveFlag}
+      />
+      <SavedRoutesSheet
+        open={savedOpen}
+        token={token}
+        title={t.saved.title}
+        emptyText={t.saved.empty}
+        openText={t.saved.load}
+        loadingText={t.route.searching}
+        renameText={t.saved.rename}
+        deleteText={t.saved.delete}
+        nameLabel={t.saved.name}
+        saveText={t.common.save}
+        cancelText={t.common.close}
+        onClose={() => setSavedOpen(false)}
+        onOpen={(id) => void planner.openSavedRoute(id)}
       />
       <Dialog open={saveOpen} onClose={() => setSaveOpen(false)} fullWidth>
         <DialogTitle>{t.route.saveRoute}</DialogTitle>

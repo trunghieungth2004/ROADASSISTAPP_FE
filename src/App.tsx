@@ -11,19 +11,20 @@ import BottomNavigation from "@mui/material/BottomNavigation";
 import BottomNavigationAction from "@mui/material/BottomNavigationAction";
 import Box from "@mui/material/Box";
 import BuildIcon from "@mui/icons-material/Build";
-import HomeIcon from "@mui/icons-material/Home";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import RouteIcon from "@mui/icons-material/Route";
 import TwoWheelerIcon from "@mui/icons-material/TwoWheeler";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { LanguageProvider, useStrings } from "./context/LanguageContext";
-import DispatchScreen from "./screens/DispatchScreen";
+import AssistScreen from "./screens/AssistScreen";
+import VolunteerRadarScreen from "./screens/VolunteerRadarScreen";
 import ErrorBoundary from "./components/ErrorBoundary";
 import HazardsScreen from "./screens/HazardsScreen";
 import HomeScreen from "./screens/HomeScreen";
 import LoginScreen from "./screens/LoginScreen";
 import MoreScreen from "./screens/MoreScreen";
+import RolePickerScreen from "./screens/RolePickerScreen";
 import RouteScreen from "./screens/RouteScreen";
 import SavedScreen from "./screens/SavedScreen";
 import VehicleScreen from "./screens/VehicleScreen";
@@ -51,11 +52,6 @@ function Tabs() {
       onChange={(_, value: string) => navigate(value)}
       sx={{ pb: "env(safe-area-inset-bottom)" }}
     >
-      <BottomNavigationAction
-        label={t.tabs.home}
-        value="/"
-        icon={<HomeIcon />}
-      />
       <BottomNavigationAction
         label={t.tabs.route}
         value="/route"
@@ -131,7 +127,15 @@ export default function App() {
                   path="/dispatch"
                   element={
                     <RequireAuth>
-                      <DispatchScreen />
+                      <AssistScreen />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/volunteer"
+                  element={
+                    <RequireAuth>
+                      <VolunteerRadarScreen />
                     </RequireAuth>
                   }
                 />
@@ -156,6 +160,14 @@ export default function App() {
                   element={
                     <RequireAuth>
                       <MoreScreen />
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/roles"
+                  element={
+                    <RequireAuth>
+                      <RolePickerScreen />
                     </RequireAuth>
                   }
                 />

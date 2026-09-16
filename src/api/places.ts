@@ -257,6 +257,38 @@ export async function searchPlaces(
   }
 }
 
+export async function reverseGeocode(
+  lat: number,
+  lng: number,
+  lang: string,
+): Promise<Place | null> {
+  if (!config.maptilerKey) {
+    return null;
+  }
+  try {
+    const res = await maptilersdk.geocoding.reverse([lng, lat], {
+      apiKey: config.maptilerKey,
+      language: lang === "vi" ? "vi" : "en",
+      limit: 1,
+    });
+    const feature = (
+      res as unknown as {features?: MaptilerFeature[]}
+    ).features?.[0];
+    if (!feature || !Array.isArray(feature.center)) {
+      return null;
+    }
+    return {
+      label: feature.place_name,
+      lat: feature.center[1],
+      lng: feature.center[0],
+      source: "map",
+      tags: feature.properties?.["osm:tags"],
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function searchDirectory(
   query: string,
   token: string,

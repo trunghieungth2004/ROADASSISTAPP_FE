@@ -1,6 +1,19 @@
 import { api } from "./client";
 
-export type VehicleType = "SCOOTER" | "CUB" | "MANUAL";
+export type VehicleType = "SCOOTER" | "CUB" | "MANUAL" | "CAR";
+
+export const CAR_VEHICLE_TYPES: ReadonlySet<string> = new Set([
+  "CAR",
+  "VAN",
+  "TRUCK",
+]);
+
+export const VEHICLE_DEFAULT_WIDTH: Record<string, number> = {
+  SCOOTER: 0.7,
+  CUB: 0.7,
+  MANUAL: 0.8,
+  CAR: 1.9,
+};
 
 export type ConfigType = "SOLO" | "PASSENGER" | "CARGO";
 

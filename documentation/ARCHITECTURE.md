@@ -75,20 +75,72 @@ things look like / compute to).
   `routes: RouteOption[]` + `selected` and derives `result`, so the chip
   row (`N · km · min`, tap to select), fabs, and pills all follow the
   active option; `drawRoutePills` renders one tappable pill per route
-  (selected `#0284c7`, alternatives `#94a3b8` at 0.75).
+  (selected `#0284c7`, alternatives `#94a3b8` at 0.75). The Find button
+  splits once `result` exists: Find half (primary, search icon) | Save
+  route half (success green, save icon); an extended Fab labeled Saved
+  (report-sized) floats above the planner card (left) and opens
+  `components/SavedRoutesSheet.tsx` (bottom sheet with per-route Open /
+  Rename / Delete, loads inline via `planner.openSavedRoute`, no
+  navigation); stops still enter through the `+` search field and its
+  pick-on-map button.
+- `services/routeView.ts` — `drawRoutes` always frames the route with
+  `fitBounds`; saved-route opens use an instant jump (`duration: 0`) set
+  by `loadSavedRoute` so the camera skips the animated flight (and its
+  tile burst), while fresh finds/reroutes keep the animated fit.
 - `components/ErrorBoundary.tsx` — class boundary wrapped around
   `<Routes>` in `App.tsx`; a screen/effect crash renders the error
   instead of unmounting the app.
 - `map/style.ts` — basemap is the `streets-v4` style URL (SDK v4 rejects
   bare style names; `streets-v2` is deprecated client-side).
+  `brandTileUrl()` builds the blurred map-tile backdrop shared by the
+  login panel and the More-screen brand header.
+- `screens/MoreScreen.tsx` — brand header (blurred tile + gradient +
+  app name, same visual as login), then Home, saved routes, appearance,
+  language, sign-out. Home lives here, not in the bottom tabs (`/route`,
+  `/hazards`, `/dispatch`, `/vehicle`, `/more`); `/` still renders
+  `HomeScreen` and stays the post-login landing.
 - `components/PlaceField.tsx` — search-first A/B input (MapTiler
   autocomplete + pick-on-map), reused by the planner card.
-- `api/places.ts` — MapTiler forward-geocoding client (Vietnam-filtered).
+- `api/places.ts` — MapTiler forward-geocoding client (Vietnam-filtered)
+  plus `reverseGeocode` for labeling map-tapped points.
+- `screens/AssistScreen.tsx` — map-based assist at `/dispatch`, cloning
+  the RouteScreen scaffold (full-screen `MapView`, top-left Assist Fab,
+  bottom preview card). Tap arms the breakdown point (red pin);
+  destination entry is a `PlaceField` plus pick-on-map (blue pin) for
+  free-form tow destinations, with registered-shop suggestions. The
+  preview card carries the ticket lifecycle (create/lookup, statuses,
+  walk results, offers with `fitsAlley` labels, ratings). The active
+  vehicle (`storage/activeVehicle.ts`, set from VehicleScreen) rides on
+  every ticket as `vehicleType`/`vehicleWidth`.
+- `screens/RolePickerScreen.tsx` — post-first-login role chooser
+  (`/roles`, re-openable from More): Rider, Shop, Mobile shop, Tow
+  (with tow-vehicle picker), Volunteer (with `SOLO_BIKE`/`CAR`
+  capability). Business registration uses `PlaceField` + GPS with
+  reverse-geocoded labels; owned shops persist in
+  `storage/myShops.ts` for the accepting toggle. Login redirects to
+  `/roles` until `storage/roleChoice.ts` is marked.
+- `screens/VolunteerRadarScreen.tsx` — pending-SOS radar with accept;
+  the server filters the radar by the volunteer's own capability.
+- `screens/VehicleScreen.tsx` — profiles now include `CAR` (1.9 m
+  default); each profile can be marked as the assist vehicle.
+- `components/FlagDetailSheet.tsx` — Deny button beside Confirm for
+  others' suggested flags (vote tracked in `storage/votedFlags.ts`).
 - `components/NearbyFlags.tsx`, `components/MapView.tsx` — pre-layer
   components; `NearbyFlags` still fetches its own data (next extraction
   candidate if it grows).
 - `storage/` — localStorage-backed mini-stores (`vehicleWidth`,
   `votedFlags`).
+- `context/AuthContext.tsx` — session owner: persists every token from
+  `onIdTokenChanged` (same-user rotations included, so the stored token
+  never goes stale), validates the session on mount / every 60 s / on
+  tab-focus with a cached `getIdToken(false)` (terminal errors sign out,
+  network errors ignored), and registers a forced-refresh provider into
+  `api/client.setTokenRefresher` so the 401 retry seam needs no
+  React/auth import in `api/*`.
+- `api/client.ts` — on a 401, retries once with a silently refreshed
+  token; a still-failing 401 or a 403 `"User is inactive"` fires
+  `roadassist:unauthorized`, which signs out and `RequireAuth` redirects
+  to `/login`.
 - `i18n/` — strings split by language (`en.ts` source of truth for the
   `Strings` type, `vi.ts`, `index.ts` record); `config/index.ts` —
   config facade over `config/appConfig.json`.

@@ -23,6 +23,7 @@ import {
   type WidthBlock,
 } from "../api/routes";
 import { getRoutingWidth, setRoutingWidth } from "../storage/vehicleWidth";
+import { getActiveVehicle } from "../storage/activeVehicle";
 import { dot, drawRoutes, drawZones, formatCoord, handle } from "../services/routeView";
 import { usePlaceSearch, type PlaceSearch } from "./usePlaceSearch";
 
@@ -186,6 +187,7 @@ export function useRoutePlanner({
           destLng: d.lng,
           stops: s,
           width: Number.isFinite(w) && w > 0 ? w : undefined,
+          vehicleType: getActiveVehicle()?.type,
         },
         token ?? "",
       );

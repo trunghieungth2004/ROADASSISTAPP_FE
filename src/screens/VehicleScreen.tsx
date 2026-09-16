@@ -13,15 +13,21 @@ import {
   addRideConfig,
   createProfile,
   listProfiles,
+  VEHICLE_DEFAULT_WIDTH,
   type ConfigType,
   type VehicleProfile,
   type VehicleType,
 } from "../api/vehicles";
 import { useAuth } from "../context/AuthContext";
 import { useStrings } from "../context/LanguageContext";
+import {
+  getActiveVehicle,
+  setActiveVehicle,
+  type ActiveVehicle,
+} from "../storage/activeVehicle";
 import { setRoutingWidth } from "../storage/vehicleWidth";
 
-const TYPES: VehicleType[] = ["SCOOTER", "CUB", "MANUAL"];
+const TYPES: VehicleType[] = ["SCOOTER", "CUB", "MANUAL", "CAR"];
 const CONFIGS: ConfigType[] = ["SOLO", "PASSENGER", "CARGO"];
 
 export default function VehicleScreen() {
@@ -38,6 +44,22 @@ export default function VehicleScreen() {
   const [configType, setConfigType] = useState<ConfigType>("SOLO");
   const [estWidth, setEstWidth] = useState("0.9");
   const [estHeight, setEstHeight] = useState("");
+  const [active, setActive] = useState<ActiveVehicle | null>(() =>
+    getActiveVehicle(),
+  );
+
+  function onTypeChange(next: VehicleType) {
+    setType(next);
+    setBaseWidth(String(VEHICLE_DEFAULT_WIDTH[next] ?? 0.7));
+    setBaseHeight(next === "CAR" ? "1.5" : "1.1");
+  }
+
+  function onUseProfile(p: VehicleProfile) {
+    const next = { type: p.type, baseWidth: p.baseWidth };
+    setActiveVehicle(next);
+    setActive(next);
+    setNotice(t.vehicle.activeSaved);
+  }
 
   async function reload(key: string) {
     setLoading(true);
@@ -147,17 +169,29 @@ export default function VehicleScreen() {
                   sx={{
                     mt: 1,
                     display: "flex",
+                    alignItems: "center",
                     justifyContent: "space-between",
+                    gap: 1,
                     bgcolor: "action.hover",
                     borderRadius: 2,
                     px: 1.5,
                     py: 1,
                   }}
                 >
-                  <Typography variant="body2">{p.type}</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {t.vehicle.width}: {p.baseWidth} m
-                  </Typography>
+                  <Box>
+                    <Typography variant="body2">
+                      {p.type}
+                      {active?.type === p.type &&
+                        active?.baseWidth === p.baseWidth &&
+                        ` · ${t.vehicle.active}`}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {t.vehicle.width}: {p.baseWidth} m
+                    </Typography>
+                  </Box>
+                  <Button size="small" onClick={() => onUseProfile(p)}>
+                    {t.vehicle.useForAssist}
+                  </Button>
                 </Box>
               ))}
             </CardContent>
@@ -174,7 +208,7 @@ export default function VehicleScreen() {
                   select
                   label={t.vehicle.type}
                   value={type}
-                  onChange={(e) => setType(e.target.value as VehicleType)}
+                  onChange={(e) => onTypeChange(e.target.value as VehicleType)}
                   fullWidth
                 >
                   {TYPES.map((v) => (

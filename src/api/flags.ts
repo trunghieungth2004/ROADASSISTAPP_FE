@@ -46,6 +46,25 @@ export function confirmFlag(
   }>("/flags/confirm", {flagId}, token);
 }
 
+export function denyFlag(
+  flagId: string,
+  token: string,
+): Promise<{
+  id: string;
+  voteCount: number;
+  status: string;
+  alreadyVoted?: boolean;
+  voteDirection?: "up" | "down" | null;
+}> {
+  return api.post<{
+    id: string;
+    voteCount: number;
+    status: string;
+    alreadyVoted?: boolean;
+    voteDirection?: "up" | "down" | null;
+  }>("/flags/deny", {flagId}, token);
+}
+
 export function unflag(
   flagId: string,
   token: string,

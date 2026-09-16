@@ -12,6 +12,7 @@ export type RouteRequest = {
   destLng: number;
   stops?: LatLng[];
   width?: number;
+  vehicleType?: string;
 };
 
 export type RouteGeometry = {
