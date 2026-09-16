@@ -13,6 +13,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import Divider from "@mui/material/Divider";
 import Fab from "@mui/material/Fab";
 import IconButton from "@mui/material/IconButton";
+import MenuItem from "@mui/material/MenuItem";
 import Snackbar from "@mui/material/Snackbar";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
@@ -48,7 +49,7 @@ import { hasDenied, hasVoted, markDenied, markVoted } from "../storage/votedFlag
 export default function RouteScreen() {
   const { t, lang } = useStrings();
   const { token, uid } = useAuth();
-  const { activeVehicle } = useProfile();
+  const { activeVehicle, vehicles, activateVehicle } = useProfile();
   const navigate = useNavigate();
   const planner = useRoutePlanner({
     token,
@@ -69,6 +70,18 @@ export default function RouteScreen() {
   const [saveName, setSaveName] = useState("");
   const [saveBusy, setSaveBusy] = useState(false);
   const [savedOpen, setSavedOpen] = useState(false);
+
+  async function onPickVehicle(profileId: string) {
+    if (!profileId || profileId === activeVehicle?.id) {
+      return;
+    }
+    try {
+      await activateVehicle(profileId);
+    } catch (err) {
+      const f = err as ApiFailure;
+      setSnack(f.message);
+    }
+  }
 
   const onClick = useCallback(
     (p: MapClick) => {
@@ -421,7 +434,7 @@ export default function RouteScreen() {
               {t.route.geoAttribution}
             </Typography>
           )}
-          {!activeVehicle && (
+          {vehicles.length === 0 && (
             <Alert
               severity="warning"
               action={
@@ -433,15 +446,21 @@ export default function RouteScreen() {
               {t.route.vehicleCta}
             </Alert>
           )}
-          {activeVehicle && (
-            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-              <Chip
-                label={`${t.dispatch.myVehicle}: ${vehicleTypeLabel(activeVehicle.type, t)} · ${activeVehicle.baseWidth} m`}
-                size="small"
-                color="primary"
-                onClick={() => navigate("/vehicle")}
-              />
-            </Box>
+          {vehicles.length > 0 && (
+            <TextField
+              select
+              size="small"
+              label={t.dispatch.myVehicle}
+              value={activeVehicle?.id ?? ""}
+              onChange={(e) => void onPickVehicle(e.target.value)}
+              fullWidth
+            >
+              {vehicles.map((v) => (
+                <MenuItem key={v.id} value={v.id}>
+                  {vehicleTypeLabel(v.type, t)} · {v.baseWidth} m
+                </MenuItem>
+              ))}
+            </TextField>
           )}
           <Box sx={{ display: "flex", gap: 1 }}>
             {result ? (

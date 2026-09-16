@@ -77,7 +77,7 @@ function fitLabel(
 export default function AssistScreen() {
   const { t, lang } = useStrings();
   const { token, uid } = useAuth();
-  const { activeVehicle: vehicle } = useProfile();
+  const { activeVehicle: vehicle, vehicles, activateVehicle } = useProfile();
   const navigate = useNavigate();
   const destSearch = usePlaceSearch(lang);
   const [map, setMap] = useState<maptilersdk.Map | null>(null);
@@ -219,6 +219,17 @@ export default function AssistScreen() {
     }
     setDest({ lat: place.lat, lng: place.lng, label: place.label });
     setDestShopId("");
+  }
+
+  async function onPickVehicle(profileId: string) {
+    if (!profileId || profileId === vehicle?.id) {
+      return;
+    }
+    try {
+      await activateVehicle(profileId);
+    } catch (err) {
+      setError(toMessage(err));
+    }
   }
 
   async function onCreate() {
@@ -474,16 +485,31 @@ export default function AssistScreen() {
                       size="small"
                       color="primary"
                     />
-                    <Typography variant="body2" color="text.secondary">
-                      {vehicle
-                        ? `${t.dispatch.myVehicle}: ${vehicleTypeLabel(vehicle.type, t)} · ${vehicle.baseWidth} m`
-                        : t.dispatch.noVehicle}
-                    </Typography>
-                  {!vehicle && (
-                    <Button size="small" onClick={() => navigate("/vehicle")}>
-                      {t.tabs.vehicle}
-                    </Button>
-                  )}
+                    {vehicles.length > 0 ? (
+                      <TextField
+                        select
+                        size="small"
+                        label={t.dispatch.myVehicle}
+                        value={vehicle?.id ?? ""}
+                        onChange={(e) => void onPickVehicle(e.target.value)}
+                        sx={{ minWidth: 180, flexGrow: 1 }}
+                      >
+                        {vehicles.map((v) => (
+                          <MenuItem key={v.id} value={v.id}>
+                            {vehicleTypeLabel(v.type, t)} · {v.baseWidth} m
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">
+                        {t.dispatch.noVehicle}
+                      </Typography>
+                    )}
+                    {vehicles.length === 0 && (
+                      <Button size="small" onClick={() => navigate("/vehicle")}>
+                        {t.tabs.vehicle}
+                      </Button>
+                    )}
                 </Box>
                 {point ? (
                   <Typography variant="body2">
