@@ -19,8 +19,10 @@ import RouteIcon from "@mui/icons-material/Route";
 import SosIcon from "@mui/icons-material/Sos";
 import TwoWheelerIcon from "@mui/icons-material/TwoWheeler";
 import { flagsNear, type Flag } from "../api/flags";
+import { flagStatusLabel } from "../components/flagStatus";
 import { useAuth } from "../context/AuthContext";
 import { useStrings } from "../context/LanguageContext";
+import { flagTypeLabel } from "../i18n/labels";
 import { mapDefaults } from "../map/style";
 
 export default function HomeScreen() {
@@ -141,10 +143,14 @@ export default function HomeScreen() {
             {nearby.map((f) => (
               <ListItem key={f.id} disableGutters>
                 <ListItemText
-                  primary={f.type}
-                  secondary={`${f.voteCount ?? 0} ${t.flag.votes} · ${f.status}`}
+                  primary={flagTypeLabel(f.type, t)}
+                  secondary={`${f.voteCount ?? 0} ${t.flag.votes} · ${flagStatusLabel(f.status, t)}`}
                 />
-                <Chip label={f.status} size="small" color="warning" />
+                <Chip
+                  label={flagStatusLabel(f.status, t)}
+                  size="small"
+                  color="warning"
+                />
               </ListItem>
             ))}
           </List>

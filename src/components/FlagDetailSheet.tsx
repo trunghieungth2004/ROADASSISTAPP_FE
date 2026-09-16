@@ -4,6 +4,7 @@ import Chip from "@mui/material/Chip";
 import SwipeableDrawer from "@mui/material/SwipeableDrawer";
 import Typography from "@mui/material/Typography";
 import { useStrings } from "../context/LanguageContext";
+import { flagTypeLabel } from "../i18n/labels";
 import type { Flag } from "../api/flags";
 import { flagStatusColor, flagStatusLabel } from "./flagStatus";
 
@@ -43,7 +44,7 @@ export default function FlagDetailSheet({
         <Box sx={{ p: 2, pb: 3, maxWidth: 480, mx: "auto", width: "100%" }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Typography variant="h6" sx={{ flexGrow: 1 }}>
-              {flag.type}
+              {flagTypeLabel(flag.type, t)}
             </Typography>
             <Chip
               label={flagStatusLabel(flag.status, t)}

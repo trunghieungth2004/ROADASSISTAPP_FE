@@ -34,6 +34,11 @@ import MapView, { type MapClick } from "../components/MapView";
 import PlaceField from "../components/PlaceField";
 import { useAuth } from "../context/AuthContext";
 import { useStrings } from "../context/LanguageContext";
+import {
+  shopTypeLabel,
+  ticketTypeLabel,
+  vehicleTypeLabel,
+} from "../i18n/labels";
 import { usePlaceSearch } from "../hooks/usePlaceSearch";
 import { getActiveVehicle } from "../storage/activeVehicle";
 
@@ -464,13 +469,17 @@ export default function AssistScreen() {
               <Box
                 sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}
               >
-                <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                  <Chip label={ticketType} size="small" color="primary" />
-                  <Typography variant="body2" color="text.secondary">
-                    {vehicle
-                      ? `${t.dispatch.myVehicle}: ${vehicle.type} · ${vehicle.baseWidth} m`
-                      : t.dispatch.noVehicle}
-                  </Typography>
+                  <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                    <Chip
+                      label={ticketTypeLabel(ticketType, t)}
+                      size="small"
+                      color="primary"
+                    />
+                    <Typography variant="body2" color="text.secondary">
+                      {vehicle
+                        ? `${t.dispatch.myVehicle}: ${vehicleTypeLabel(vehicle.type, t)} · ${vehicle.baseWidth} m`
+                        : t.dispatch.noVehicle}
+                    </Typography>
                   {!vehicle && (
                     <Button size="small" onClick={() => navigate("/vehicle")}>
                       {t.tabs.vehicle}
@@ -562,7 +571,7 @@ export default function AssistScreen() {
                   }}
                 >
                   <Typography variant="subtitle2">
-                    {ticket.ticketType}
+                    {ticketTypeLabel(ticket.ticketType, t)}
                   </Typography>
                   <Chip
                     label={`${t.dispatch.statusNames}: ${statusName}`}
@@ -573,7 +582,7 @@ export default function AssistScreen() {
                 <Typography variant="caption" color="text.secondary">
                   {ticket.lat.toFixed(5)}, {ticket.lng.toFixed(5)}
                   {ticket.vehicleType &&
-                    ` · ${ticket.vehicleType} ${ticket.vehicleWidth ?? ""}`}
+                    ` · ${vehicleTypeLabel(ticket.vehicleType, t)} ${ticket.vehicleWidth ?? ""}`}
                 </Typography>
                 {ticket.note && (
                   <Typography variant="body2">{ticket.note}</Typography>
@@ -630,7 +639,7 @@ export default function AssistScreen() {
                     <Box>
                       <Typography variant="body2">{s.name}</Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {s.type}
+                        {shopTypeLabel(s.type, t)}
                         {s.distance != null && ` · ${Math.round(s.distance)} m`}
                         {s.ratingCount != null &&
                           s.ratingCount > 0 &&
@@ -662,7 +671,7 @@ export default function AssistScreen() {
                       >
                         {OFFER_KINDS.map((k) => (
                           <MenuItem key={k} value={k}>
-                            {k}
+                            {shopTypeLabel(k, t)}
                           </MenuItem>
                         ))}
                       </TextField>

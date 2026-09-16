@@ -33,6 +33,7 @@ import {
 import PlaceField from "../components/PlaceField";
 import { useAuth } from "../context/AuthContext";
 import { useStrings } from "../context/LanguageContext";
+import { towVehicleLabel } from "../i18n/labels";
 import { usePlaceSearch } from "../hooks/usePlaceSearch";
 import {
   addMyShop,
@@ -312,7 +313,7 @@ export default function RolePickerScreen() {
                   >
                     {TOW_VEHICLES.map((v) => (
                       <MenuItem key={v} value={v}>
-                        {v}
+                        {towVehicleLabel(v, t)}
                       </MenuItem>
                     ))}
                   </TextField>

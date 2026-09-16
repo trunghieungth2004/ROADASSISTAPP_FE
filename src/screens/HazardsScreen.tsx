@@ -31,6 +31,7 @@ import MapView, { type MapClick } from "../components/MapView";
 import { flagStatusColor, flagStatusLabel } from "../components/flagStatus";
 import { useAuth } from "../context/AuthContext";
 import { useStrings } from "../context/LanguageContext";
+import { flagTypeLabel, tierLabel } from "../i18n/labels";
 import { hasVoted, markVoted } from "../storage/votedFlags";
 import { mapDefaults } from "../map/style";
 
@@ -219,7 +220,9 @@ export default function HazardsScreen() {
             <Card key={f.id}>
               <CardContent>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <Typography variant="subtitle1">{f.type}</Typography>
+                  <Typography variant="subtitle1">
+                    {flagTypeLabel(f.type, t)}
+                  </Typography>
                   <Chip
                     label={flagStatusLabel(f.status, t)}
                     size="small"
@@ -287,9 +290,12 @@ export default function HazardsScreen() {
           <Card key={f.id}>
             <CardContent>
               <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                <Typography variant="subtitle1">{f.type}</Typography>
+                <Typography variant="subtitle1">
+                  {flagTypeLabel(f.type, t)}
+                </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {f.voteCount ?? 0} {t.hazards.votes} · {f.status}
+                  {f.voteCount ?? 0} {t.hazards.votes} ·{" "}
+                  {flagStatusLabel(f.status, t)}
                 </Typography>
               </Box>
               {f.note && (
@@ -340,7 +346,7 @@ export default function HazardsScreen() {
               >
                 {FLAG_TYPES.map((v) => (
                   <MenuItem key={v} value={v}>
-                    {v}
+                    {flagTypeLabel(v, t)}
                   </MenuItem>
                 ))}
               </TextField>
@@ -416,7 +422,7 @@ export default function HazardsScreen() {
               >
                 {TIERS.map((v) => (
                   <MenuItem key={v} value={v}>
-                    {v}
+                    {tierLabel(v, t)}
                   </MenuItem>
                 ))}
               </TextField>

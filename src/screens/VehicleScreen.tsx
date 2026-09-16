@@ -20,6 +20,7 @@ import {
 } from "../api/vehicles";
 import { useAuth } from "../context/AuthContext";
 import { useStrings } from "../context/LanguageContext";
+import { configTypeLabel, vehicleTypeLabel } from "../i18n/labels";
 import {
   getActiveVehicle,
   setActiveVehicle,
@@ -180,7 +181,7 @@ export default function VehicleScreen() {
                 >
                   <Box>
                     <Typography variant="body2">
-                      {p.type}
+                      {vehicleTypeLabel(p.type, t)}
                       {active?.type === p.type &&
                         active?.baseWidth === p.baseWidth &&
                         ` · ${t.vehicle.active}`}
@@ -213,7 +214,7 @@ export default function VehicleScreen() {
                 >
                   {TYPES.map((v) => (
                     <MenuItem key={v} value={v}>
-                      {v}
+                      {vehicleTypeLabel(v, t)}
                     </MenuItem>
                   ))}
                 </TextField>
@@ -266,7 +267,7 @@ export default function VehicleScreen() {
                   >
                     {profiles.map((p) => (
                       <MenuItem key={p.id} value={p.id}>
-                        {p.type} · {p.baseWidth} m
+                        {vehicleTypeLabel(p.type, t)} · {p.baseWidth} m
                       </MenuItem>
                     ))}
                   </TextField>
@@ -279,7 +280,7 @@ export default function VehicleScreen() {
                   >
                     {CONFIGS.map((c) => (
                       <MenuItem key={c} value={c}>
-                        {c}
+                        {configTypeLabel(c, t)}
                       </MenuItem>
                     ))}
                   </TextField>

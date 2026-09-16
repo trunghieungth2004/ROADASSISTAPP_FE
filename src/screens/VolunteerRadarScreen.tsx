@@ -15,6 +15,7 @@ import {
 } from "../api/dispatch";
 import { useAuth } from "../context/AuthContext";
 import { useStrings } from "../context/LanguageContext";
+import { ticketTypeLabel } from "../i18n/labels";
 
 export default function VolunteerRadarScreen() {
   const { t } = useStrings();
@@ -107,7 +108,7 @@ export default function VolunteerRadarScreen() {
                 }}
               >
                 <Typography variant="subtitle2">
-                  {ticket.ticketType}
+                  {ticketTypeLabel(ticket.ticketType, t)}
                 </Typography>
                 <Chip
                   size="small"
