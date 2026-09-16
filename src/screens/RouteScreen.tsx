@@ -49,7 +49,8 @@ import { hasDenied, hasVoted, markDenied, markVoted } from "../storage/votedFlag
 export default function RouteScreen() {
   const { t, lang } = useStrings();
   const { token, uid } = useAuth();
-  const { activeVehicle, vehicles, activateVehicle } = useProfile();
+  const { activeVehicle, vehicles, activateVehicle, loadFailed, refresh } =
+    useProfile();
   const navigate = useNavigate();
   const planner = useRoutePlanner({
     token,
@@ -434,7 +435,19 @@ export default function RouteScreen() {
               {t.route.geoAttribution}
             </Typography>
           )}
-          {vehicles.length === 0 && (
+          {vehicles.length === 0 && loadFailed && (
+            <Alert
+              severity="error"
+              action={
+                <Button size="small" onClick={() => void refresh()}>
+                  {t.common.retry}
+                </Button>
+              }
+            >
+              {t.route.profileFailed}
+            </Alert>
+          )}
+          {vehicles.length === 0 && !loadFailed && (
             <Alert
               severity="warning"
               action={

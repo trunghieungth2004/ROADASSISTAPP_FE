@@ -19,6 +19,7 @@ import { useAuth } from "./AuthContext";
 type ProfileState = {
   bundle: MeBundle | null;
   loading: boolean;
+  loadFailed: boolean;
   user: MeBundle["user"] | null;
   vehicles: MeVehicle[];
   activeVehicle: MeVehicle | null;
@@ -70,10 +71,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     readMirror(uid),
   );
   const [loading, setLoading] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const refresh = useCallback(async (): Promise<MeBundle | null> => {
     if (!token || !uid) {
       setBundle(null);
+      setLoadFailed(false);
       writeMirror("", null);
       return null;
     }
@@ -89,9 +92,12 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         }
       }
       setBundle(next);
+      setLoadFailed(false);
       writeMirror(uid, next);
       return next;
-    } catch {
+    } catch (err) {
+      setLoadFailed(true);
+      console.warn("[profile] bundle refresh failed", err);
       return null;
     } finally {
       setLoading(false);
@@ -158,6 +164,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     return {
       bundle,
       loading,
+      loadFailed,
       user: bundle?.user ?? null,
       vehicles,
       activeVehicle: bundle?.activeVehicle ?? null,
@@ -167,7 +174,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       activateVehicle,
       markOnboarded,
     };
-  }, [bundle, loading, refresh, activateVehicle, markOnboarded]);
+  }, [bundle, loading, loadFailed, refresh, activateVehicle, markOnboarded]);
 
   return (
     <ProfileContext.Provider value={value}>

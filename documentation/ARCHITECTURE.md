@@ -143,6 +143,8 @@ things look like / compute to).
   starts; exposes user, vehicles, active vehicle, onboarding state, and
   the `activateVehicle` / `markOnboarded` writers. Auto-activates the
   first profile once when a user owns vehicles but none is active.
+  Refresh failures set `loadFailed` (plus a console warning) so screens
+  can show "couldn't load profile + retry" instead of "no vehicles".
 - `context/AuthContext.tsx` — session owner: persists every token from
   `onIdTokenChanged` (same-user rotations included, so the stored token
   never goes stale), validates the session on mount / every 60 s / on

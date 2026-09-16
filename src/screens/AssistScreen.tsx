@@ -77,7 +77,13 @@ function fitLabel(
 export default function AssistScreen() {
   const { t, lang } = useStrings();
   const { token, uid } = useAuth();
-  const { activeVehicle: vehicle, vehicles, activateVehicle } = useProfile();
+  const {
+    activeVehicle: vehicle,
+    vehicles,
+    activateVehicle,
+    loadFailed,
+    refresh,
+  } = useProfile();
   const navigate = useNavigate();
   const destSearch = usePlaceSearch(lang);
   const [map, setMap] = useState<maptilersdk.Map | null>(null);
@@ -500,12 +506,21 @@ export default function AssistScreen() {
                           </MenuItem>
                         ))}
                       </TextField>
+                    ) : loadFailed ? (
+                      <Typography variant="body2" color="text.secondary">
+                        {t.route.profileFailed}
+                      </Typography>
                     ) : (
                       <Typography variant="body2" color="text.secondary">
                         {t.dispatch.noVehicle}
                       </Typography>
                     )}
-                    {vehicles.length === 0 && (
+                    {vehicles.length === 0 && loadFailed && (
+                      <Button size="small" onClick={() => void refresh()}>
+                        {t.common.retry}
+                      </Button>
+                    )}
+                    {vehicles.length === 0 && !loadFailed && (
                       <Button size="small" onClick={() => navigate("/vehicle")}>
                         {t.tabs.vehicle}
                       </Button>

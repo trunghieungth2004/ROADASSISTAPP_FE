@@ -41,6 +41,7 @@ export const vi: Strings = {
     addStop: "Thêm điểm dừng",
     stops: "Điểm dừng",
     vehicleCta: "Thêm xe của bạn trước để lập lộ trình",
+    profileFailed: "Không tải được hồ sơ",
     find: "Tìm đường",
     needPoints: "Hãy chọn điểm đi và điểm đến trước",
     fromCache: "đã lưu",

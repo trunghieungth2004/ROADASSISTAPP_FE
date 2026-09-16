@@ -40,6 +40,7 @@ export const en = {
     addStop: "Add stop",
     stops: "Stops",
     vehicleCta: "Add your vehicle first to plan a route",
+    profileFailed: "Couldn't load your profile",
     find: "Find route",
     needPoints: "Set origin and destination first",
     fromCache: "cached",
