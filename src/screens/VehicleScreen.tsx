@@ -5,9 +5,14 @@ import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Container from "@mui/material/Container";
+import Dialog from "@mui/material/Dialog";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import Fab from "@mui/material/Fab";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import AddIcon from "@mui/icons-material/Add";
 import { toMessage } from "../api/client";
 import {
   addRideConfig,
@@ -41,6 +46,7 @@ export default function VehicleScreen() {
   const [configType, setConfigType] = useState<ConfigType>("SOLO");
   const [estWidth, setEstWidth] = useState("0.9");
   const [estHeight, setEstHeight] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
 
   function onTypeChange(next: VehicleType) {
     setType(next);
@@ -98,6 +104,7 @@ export default function VehicleScreen() {
       );
       await reload(token);
       await refresh();
+      setCreateOpen(false);
     } catch (err) {
       setError(toMessage(err));
     }
@@ -146,6 +153,14 @@ export default function VehicleScreen() {
       )}
       {!loading && !error && (
         <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+          <Fab
+            color="primary"
+            aria-label={t.vehicle.create}
+            sx={{ position: "fixed", bottom: 72, right: 16 }}
+            onClick={() => setCreateOpen(true)}
+          >
+            <AddIcon />
+          </Fab>
           <Card>
             <CardContent>
               <Typography variant="subtitle1">{t.vehicle.profiles}</Typography>
@@ -189,9 +204,11 @@ export default function VehicleScreen() {
               ))}
             </CardContent>
           </Card>
-          <Card>
-            <CardContent>
-              <Typography variant="subtitle1">{t.vehicle.create}</Typography>
+          <Dialog open={createOpen} onClose={() => setCreateOpen(false)}>
+            <DialogTitle>{t.vehicle.create}</DialogTitle>
+            <DialogContent
+              sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
+            >
               <Box
                 component="form"
                 onSubmit={onCreate}
@@ -232,8 +249,8 @@ export default function VehicleScreen() {
                   {t.common.save}
                 </Button>
               </Box>
-            </CardContent>
-          </Card>
+            </DialogContent>
+          </Dialog>
           {profiles.length > 0 && (
             <Card>
               <CardContent>
