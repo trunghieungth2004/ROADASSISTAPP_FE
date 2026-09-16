@@ -42,6 +42,8 @@ npm run preview   # serve the production build locally
 
 Email/password via Firebase (`src/auth/firebase.ts`). `AuthContext` holds the `{uid, token}` session in state + `localStorage`, refreshes ID tokens, and clears the session on the `roadassist:unauthorized` event fired by `api/client.ts` on 401s. Every backend call sends `Authorization: Bearer <idToken>`.
 
+Token freshness: the context subscribes with `onIdTokenChanged` (not `onAuthStateChanged`, which skips same-user token rotations) and persists every new token, so the stored token survives the ~1 h Firebase lifetime. A session check runs on mount, every 60 s, and when the tab regains focus — `getIdToken(false)` (cached, no network); a terminal auth error (`user-token-expired`, `invalid-user-token`, `user-disabled`, `user-not-found`) signs out automatically, while `network-request-failed` is ignored so offline never logs you out. On a backend 401, `api/client.ts` does one silent forced refresh + retry (via a refresher registered by `AuthContext`, so `api/*` never imports auth/React) and only signs out if that fails; a backend 403 `"User is inactive"` also forces logout.
+
 - **Login tab** — `signInWithEmailAndPassword`, then the session is stored.
 - **Create-account tab** — `POST /users/register` (public; creates the Auth user and its Firestore doc), then signs in as above.
 

@@ -6,9 +6,9 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { onAuthStateChanged, signOut as firebaseSignOut } from "firebase/auth";
+import { onIdTokenChanged, signOut as firebaseSignOut } from "firebase/auth";
 import { auth } from "../auth/firebase";
-import { UNAUTHORIZED_EVENT } from "../api/client";
+import { UNAUTHORIZED_EVENT, setTokenRefresher } from "../api/client";
 
 type Session = {
   uid: string;
@@ -26,6 +26,23 @@ type AuthState = {
 const AuthContext = createContext<AuthState | null>(null);
 
 const STORAGE_KEY = "roadassist.session";
+
+const INVALID_SESSION_CODES = new Set([
+  "auth/user-token-expired",
+  "auth/invalid-user-token",
+  "auth/user-disabled",
+  "auth/user-not-found",
+]);
+
+function isSessionInvalid(err: unknown): boolean {
+  return (
+    !!err &&
+    typeof err === "object" &&
+    "code" in err &&
+    typeof err.code === "string" &&
+    INVALID_SESSION_CODES.has(err.code)
+  );
+}
 
 function readSession(): Session | null {
   try {
@@ -60,28 +77,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) {
       return null;
     }
-    const token = await user.getIdToken();
+    const token = await user.getIdToken(true);
     signIn(user.uid, token);
     return token;
   }, [signIn]);
 
   useEffect(
     () =>
-      onAuthStateChanged(auth, (user) => {
+      onIdTokenChanged(auth, (user) => {
         if (!user) {
           clearSession();
           return;
         }
-        setSession((prev) => {
-          if (prev && prev.uid === user.uid) {
-            return prev;
-          }
-          void user.getIdToken().then((token) => signIn(user.uid, token));
-          return prev;
-        });
+        void user
+          .getIdToken()
+          .then((token) => {
+            setSession((prev) => {
+              if (prev && prev.uid === user.uid && prev.token === token) {
+                return prev;
+              }
+              const next = { uid: user.uid, token };
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+              return next;
+            });
+          })
+          .catch(() => {
+            clearSession();
+          });
       }),
-    [clearSession, signIn],
+    [clearSession],
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    async function checkSession(): Promise<void> {
+      const user = auth.currentUser;
+      if (!user || cancelled) {
+        return;
+      }
+      try {
+        await user.getIdToken(false);
+      } catch (err) {
+        if (cancelled) {
+          return;
+        }
+        if (isSessionInvalid(err)) {
+          clearSession();
+          await firebaseSignOut(auth);
+        }
+      }
+    }
+    void checkSession();
+    const id = window.setInterval(() => void checkSession(), 60000);
+    const onVisible = (): void => {
+      if (document.visibilityState === "visible") {
+        void checkSession();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [clearSession]);
+
+  useEffect(() => {
+    setTokenRefresher(refreshToken);
+    return () => setTokenRefresher(null);
+  }, [refreshToken]);
 
   useEffect(() => {
     const onUnauthorized = (): void => {

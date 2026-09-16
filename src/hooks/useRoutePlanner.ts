@@ -80,6 +80,7 @@ export type RoutePlanner = {
   swapPoints: () => void;
   onFind: () => void;
   reroute: () => void;
+  openSavedRoute: (routeId: string) => Promise<void>;
   clearAll: () => void;
 };
 
@@ -106,6 +107,7 @@ export function useRoutePlanner({
   const [busy, setBusy] = useState(false);
   const [nonce, setNonce] = useState(0);
   const [loadedSaved, setLoadedSaved] = useState(false);
+  const fitRef = useRef<"animated" | "instant">("animated");
   const [originLabel, setOriginLabel] = useState<string | null>(null);
   const [destLabel, setDestLabel] = useState<string | null>(null);
   const [savedPlaces, setSavedPlaces] = useState<SavedPlace[]>([]);
@@ -208,6 +210,7 @@ export function useRoutePlanner({
       setRoutes([]);
       setSelected(0);
       setFailure(null);
+      fitRef.current = "instant";
       try {
         const saved = await getSavedRoute(routeId, authToken);
         setOrigin({ lat: saved.originLat, lng: saved.originLng });
@@ -232,8 +235,6 @@ export function useRoutePlanner({
             durationSeconds: saved.durationSeconds ?? 0,
             geometry: saved.geometry,
             source,
-            via: saved.via ?? undefined,
-            hazards: saved.hazards ?? undefined,
           },
         ]);
         setSelected(0);
@@ -491,7 +492,12 @@ export function useRoutePlanner({
     if (!map || !mapReady) {
       return;
     }
-    drawRoutes(map, routes, selected);
+    let animate = true;
+    if (routes.length > 0) {
+      animate = fitRef.current !== "instant";
+      fitRef.current = "animated";
+    }
+    drawRoutes(map, routes, selected, { animate });
     drawZones(map, [
       ...(result?.hazards ?? []),
       ...(failure?.zones ?? []),
@@ -520,6 +526,16 @@ export function useRoutePlanner({
     setLoadedSaved(false);
     void requestRoute(origin, dest, stops);
   }
+
+  const openSavedRoute = useCallback(
+    (routeId: string): Promise<void> => {
+      if (!token) {
+        return Promise.resolve();
+      }
+      return loadSavedRoute(routeId, token);
+    },
+    [token, loadSavedRoute],
+  );
 
   function clearAll() {
     setOrigin(null);
@@ -571,6 +587,7 @@ export function useRoutePlanner({
     swapPoints,
     onFind,
     reroute,
+    openSavedRoute,
     clearAll,
   };
 }

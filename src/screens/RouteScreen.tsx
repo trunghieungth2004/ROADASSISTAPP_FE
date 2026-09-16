@@ -9,6 +9,7 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
+import Divider from "@mui/material/Divider";
 import Fab from "@mui/material/Fab";
 import IconButton from "@mui/material/IconButton";
 import Snackbar from "@mui/material/Snackbar";
@@ -91,8 +92,6 @@ export default function RouteScreen() {
           durationSeconds: result.durationSeconds,
           source: result.source,
           geometry: result.geometry,
-          via: result.via ?? null,
-          hazards: result.hazards ?? null,
         },
         token,
       );
@@ -250,16 +249,28 @@ export default function RouteScreen() {
           sx={{ position: "absolute", top: 72, left: 16 }}
         />
       )}
-      <Card
+      <Box
         sx={{
           position: "absolute",
           left: 12,
           right: 12,
           bottom: 12,
-          maxHeight: "55%",
-          overflowY: "auto",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-start",
         }}
       >
+        <Fab
+          variant="extended"
+          color="primary"
+          disabled={!token}
+          onClick={() => setSavedOpen(true)}
+          sx={{ mb: 1 }}
+        >
+          <BookmarkBorderIcon sx={{ mr: 1 }} />
+          {t.saved.short}
+        </Fab>
+        <Card sx={{ width: "100%", maxHeight: "55dvh", overflowY: "auto" }}>
         <CardContent sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
           <Box sx={{ display: "flex", gap: 1 }}>
             <Box
@@ -335,15 +346,6 @@ export default function RouteScreen() {
               sx={{ alignSelf: "flex-start" }}
             />
           )}
-          <Button
-            variant={mode === "stop" ? "contained" : "outlined"}
-            size="small"
-            disabled={stops.length >= 10}
-            onClick={() => setMode(mode === "stop" ? null : "stop")}
-            sx={{ alignSelf: "flex-start" }}
-          >
-            + {t.route.addStop} ({stops.length}/10)
-          </Button>
           <PlaceField
             point="+"
             title={t.route.stop}
@@ -402,18 +404,68 @@ export default function RouteScreen() {
                 sx={{ width: 130 }}
               />
             </Tooltip>
-            <Button
-              variant="contained"
-              disabled={planner.busy}
-              onClick={planner.onFind}
-              sx={{ flexGrow: 1 }}
-            >
-              {t.route.find}
-            </Button>
+            {result ? (
+              <Box sx={{ display: "flex", flexGrow: 1 }}>
+                <Button
+                  variant="contained"
+                  disabled={planner.busy}
+                  onClick={planner.onFind}
+                  sx={{
+                    flexGrow: 1,
+                    borderTopRightRadius: 0,
+                    borderBottomRightRadius: 0,
+                  }}
+                >
+                  <SearchIcon sx={{ mr: 1 }} />
+                  {t.route.find}
+                </Button>
+                <Divider
+                  orientation="vertical"
+                  flexItem
+                  sx={{ borderColor: "rgba(255,255,255,0.35)" }}
+                />
+                <Button
+                  variant="contained"
+                  color="success"
+                  onClick={() => setSaveOpen(true)}
+                  sx={{
+                    flexGrow: 1,
+                    borderTopLeftRadius: 0,
+                    borderBottomLeftRadius: 0,
+                  }}
+                >
+                  <SaveIcon sx={{ mr: 1 }} />
+                  {t.route.saveRoute}
+                </Button>
+              </Box>
+            ) : (
+              <Button
+                variant="contained"
+                disabled={planner.busy}
+                onClick={planner.onFind}
+                sx={{ flexGrow: 1 }}
+              >
+                <SearchIcon sx={{ mr: 1 }} />
+                {t.route.find}
+              </Button>
+            )}
             <Button variant="outlined" onClick={planner.clearAll}>
               {t.route.clear}
             </Button>
           </Box>
+          {result && planner.loadedSaved && origin && dest && (
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <Button
+                variant="outlined"
+                color="secondary"
+                disabled={planner.busy}
+                onClick={() => planner.reroute()}
+                sx={{ flexGrow: 1 }}
+              >
+                {t.route.reroute}
+              </Button>
+            </Box>
+          )}
           {result && (result.warnings ?? []).length > 0 && (
             <Alert severity="warning" sx={{ mt: 1 }}>
               <Typography variant="subtitle2">
@@ -451,30 +503,8 @@ export default function RouteScreen() {
             </Alert>
           )}
         </CardContent>
-      </Card>
-      {result && (
-        <Fab
-          variant="extended"
-          color="primary"
-          sx={{ position: "absolute", top: 16, right: 16 }}
-          onClick={() => setSaveOpen(true)}
-        >
-          <SaveIcon sx={{ mr: 1 }} />
-          {t.route.saveRoute}
-        </Fab>
-      )}
-      {result && planner.loadedSaved && origin && dest && (
-        <Fab
-          variant="extended"
-          size="medium"
-          color="secondary"
-          sx={{ position: "absolute", top: 84, right: 16 }}
-          disabled={planner.busy}
-          onClick={() => planner.reroute()}
-        >
-          {t.route.reroute}
-        </Fab>
-      )}
+        </Card>
+      </Box>
       {planner.routes.length > 1 && (
         <Box
           sx={{

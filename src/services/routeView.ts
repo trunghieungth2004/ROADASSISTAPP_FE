@@ -48,9 +48,10 @@ export function drawRoutes(
   map: maptilersdk.Map,
   routes: RouteOption[],
   selected: number,
+  fit?: { animate?: boolean },
 ): void {
   try {
-    drawRoutesInner(map, routes, selected);
+    drawRoutesInner(map, routes, selected, fit?.animate !== false);
   } catch (err) {
     console.error(err);
   }
@@ -60,6 +61,7 @@ function drawRoutesInner(
   map: maptilersdk.Map,
   routes: RouteOption[],
   selected: number,
+  animate: boolean,
 ): void {
   for (let i = 0; i < 8; i++) {
     const id = `route-line-${i}`;
@@ -109,7 +111,10 @@ function drawRoutesInner(
     }
   }
   if (!bounds.isEmpty()) {
-    map.fitBounds(bounds, { padding: 70 });
+    map.fitBounds(
+      bounds,
+      animate ? { padding: 70 } : { padding: 70, duration: 0 },
+    );
   }
 }
 

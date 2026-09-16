@@ -76,8 +76,6 @@ export type SavedRouteSummary = {
 
 export type SavedRoute = SavedRouteSummary & {
   geometry: RouteGeometry;
-  via?: LatLng | null;
-  hazards?: HazardZone[] | null;
 };
 
 export type SaveRoutePayload = {
@@ -92,8 +90,6 @@ export type SaveRoutePayload = {
   durationSeconds?: number;
   source?: string;
   geometry: RouteGeometry;
-  via?: LatLng | null;
-  hazards?: HazardZone[] | null;
 };
 
 export function saveRoute(

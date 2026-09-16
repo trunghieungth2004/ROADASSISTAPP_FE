@@ -12,25 +12,9 @@ import Typography from "@mui/material/Typography";
 import { auth } from "../auth/firebase";
 import { register } from "../api/auth";
 import { toMessage } from "../api/client";
-import { config } from "../config";
 import { useAuth } from "../context/AuthContext";
 import { useStrings } from "../context/LanguageContext";
-import { mapDefaults } from "../map/style";
-
-const TILE_ZOOM = 14;
-
-function mapTileUrl(): string {
-  const n = 2 ** TILE_ZOOM;
-  const [lng, lat] = mapDefaults.center;
-  const x = Math.floor(((lng + 180) / 360) * n);
-  const rad = (lat * Math.PI) / 180;
-  const y = Math.floor(
-    ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n,
-  );
-  return config.maptilerKey
-    ? `https://api.maptiler.com/maps/streets-v2/${TILE_ZOOM}/${x}/${y}.png?key=${config.maptilerKey}`
-    : `https://tile.openstreetmap.org/${TILE_ZOOM}/${x}/${y}.png`;
-}
+import { brandTileUrl } from "../map/style";
 
 export default function LoginScreen() {
   const { t } = useStrings();
@@ -81,7 +65,7 @@ export default function LoginScreen() {
           sx={{
             position: "absolute",
             inset: "-10%",
-            backgroundImage: `url("${mapTileUrl()}")`,
+            backgroundImage: `url("${brandTileUrl()}")`,
             backgroundSize: "cover",
             backgroundPosition: "center",
             filter: "blur(14px)",
