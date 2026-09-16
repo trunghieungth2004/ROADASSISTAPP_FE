@@ -39,9 +39,7 @@ export const en = {
     tapToSet: "Tap map to set",
     addStop: "Add stop",
     stops: "Stops",
-    width: "Width (m)",
-    widthHint: "Your vehicle width. Routes avoid alleys narrower than this",
-    widthNote: "Planned for {w} m vehicle",
+    vehicleCta: "Add your vehicle first to plan a route",
     find: "Find route",
     needPoints: "Set origin and destination first",
     fromCache: "cached",
@@ -126,6 +124,7 @@ export const en = {
     width: "Width",
     profiles: "Profiles",
     none: "No vehicles yet.",
+    onboarding: "Add your first vehicle — routing and assist use it automatically.",
     create: "Add vehicle",
     type: "Type",
     types: {

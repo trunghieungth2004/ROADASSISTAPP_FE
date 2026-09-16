@@ -32,8 +32,9 @@ import {
 } from "../api/users";
 import PlaceField from "../components/PlaceField";
 import { useAuth } from "../context/AuthContext";
+import { useProfile } from "../context/ProfileContext";
 import { useStrings } from "../context/LanguageContext";
-import { towVehicleLabel } from "../i18n/labels";
+import { shopTypeLabel, towVehicleLabel } from "../i18n/labels";
 import { usePlaceSearch } from "../hooks/usePlaceSearch";
 import {
   addMyShop,
@@ -41,7 +42,6 @@ import {
   setMyShopAccepting,
   type MyShop,
 } from "../storage/myShops";
-import { markRoleChosen } from "../storage/roleChoice";
 
 type Role = "RIDER" | "SHOP" | "MOBILE" | "TOW" | "VOLUNTEER";
 
@@ -55,6 +55,7 @@ const TOW_WIDTHS: Record<TowVehicleType, string> = {
 export default function RolePickerScreen() {
   const { t, lang } = useStrings();
   const { token } = useAuth();
+  const { hasVehicle, markOnboarded } = useProfile();
   const navigate = useNavigate();
   const search = usePlaceSearch(lang);
   const [role, setRole] = useState<Role>("RIDER");
@@ -105,8 +106,20 @@ export default function RolePickerScreen() {
   }
 
   function done() {
-    markRoleChosen();
-    navigate("/");
+    void finish("RIDER");
+  }
+
+  async function finish(nextRole: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      await markOnboarded(nextRole);
+      navigate(hasVehicle ? "/" : "/vehicle");
+    } catch (err) {
+      setError(toMessage(err));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function onRegister() {
@@ -140,8 +153,12 @@ export default function RolePickerScreen() {
           accepting: created.accepting,
         }),
       );
+      await markOnboarded(shopType);
+      if (!hasVehicle) {
+        navigate("/vehicle");
+        return;
+      }
       setNotice(t.roles.registered);
-      markRoleChosen();
     } catch (err) {
       setError(toMessage(err));
     } finally {
@@ -168,8 +185,12 @@ export default function RolePickerScreen() {
         {lat: pos.coords.latitude, lng: pos.coords.longitude},
         token,
       );
+      await markOnboarded("VOLUNTEER");
+      if (!hasVehicle) {
+        navigate("/vehicle");
+        return;
+      }
       setNotice(t.roles.registered);
-      markRoleChosen();
     } catch (err) {
       setError(toMessage(err));
     } finally {
@@ -411,7 +432,7 @@ export default function RolePickerScreen() {
                   <Box>
                     <Typography variant="body2">{s.name}</Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {s.type} ·{" "}
+                      {shopTypeLabel(s.type, t)} ·{" "}
                       {s.accepting === false
                         ? t.dispatch.paused
                         : t.dispatch.accepting}
@@ -428,7 +449,7 @@ export default function RolePickerScreen() {
             </CardContent>
           </Card>
         )}
-        <Button variant="text" onClick={done}>
+        <Button variant="text" onClick={() => void finish(role)}>
           {t.roles.skip}
         </Button>
       </Box>

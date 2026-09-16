@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -14,7 +15,6 @@ import Fab from "@mui/material/Fab";
 import IconButton from "@mui/material/IconButton";
 import Snackbar from "@mui/material/Snackbar";
 import TextField from "@mui/material/TextField";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import AddAlertIcon from "@mui/icons-material/AddAlert";
 import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
@@ -38,7 +38,9 @@ import NearbyFlags from "../components/NearbyFlags";
 import PlaceField from "../components/PlaceField";
 import SavedRoutesSheet from "../components/SavedRoutesSheet";
 import { useAuth } from "../context/AuthContext";
+import { useProfile } from "../context/ProfileContext";
 import { useStrings } from "../context/LanguageContext";
+import { vehicleTypeLabel } from "../i18n/labels";
 import { useRoutePlanner } from "../hooks/useRoutePlanner";
 import { drawRoutePills } from "../services/routeView";
 import { hasDenied, hasVoted, markDenied, markVoted } from "../storage/votedFlags";
@@ -46,10 +48,13 @@ import { hasDenied, hasVoted, markDenied, markVoted } from "../storage/votedFlag
 export default function RouteScreen() {
   const { t, lang } = useStrings();
   const { token, uid } = useAuth();
+  const { activeVehicle } = useProfile();
+  const navigate = useNavigate();
   const planner = useRoutePlanner({
     token,
     lang,
     needPointsMessage: t.route.needPoints,
+    needVehicleMessage: t.dispatch.noVehicle,
   });
   const { mode, setMode } = planner;
   const [flagPoint, setFlagPoint] = useState<LatLng | null>(null);
@@ -78,13 +83,12 @@ export default function RouteScreen() {
   );
 
   async function onSaveRoute() {
-    const { origin, dest, stops, width, result } = planner;
+    const { origin, dest, stops, result } = planner;
     if (!token || !origin || !dest || !result) {
       return;
     }
     setSaveBusy(true);
     try {
-      const w = Number(width);
       await saveRoute(
         {
           name: saveName.trim() || undefined,
@@ -93,7 +97,7 @@ export default function RouteScreen() {
           destLat: dest.lat,
           destLng: dest.lng,
           stops,
-          width: Number.isFinite(w) && w > 0 ? w : undefined,
+          width: activeVehicle?.baseWidth,
           distanceMeters: result.distanceMeters,
           durationSeconds: result.durationSeconds,
           source: result.source,
@@ -417,23 +421,34 @@ export default function RouteScreen() {
               {t.route.geoAttribution}
             </Typography>
           )}
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <Tooltip title={t.route.widthHint} enterTouchDelay={0}>
-              <TextField
-                label={t.route.width}
-                type="number"
+          {!activeVehicle && (
+            <Alert
+              severity="warning"
+              action={
+                <Button size="small" onClick={() => navigate("/vehicle")}>
+                  {t.tabs.vehicle}
+                </Button>
+              }
+            >
+              {t.route.vehicleCta}
+            </Alert>
+          )}
+          {activeVehicle && (
+            <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+              <Chip
+                label={`${t.dispatch.myVehicle}: ${vehicleTypeLabel(activeVehicle.type, t)} · ${activeVehicle.baseWidth} m`}
                 size="small"
-                slotProps={{ htmlInput: { step: "0.05", min: "0.1" } }}
-                value={planner.width}
-                onChange={(e) => planner.setWidth(e.target.value)}
-                sx={{ width: 130 }}
+                color="primary"
+                onClick={() => navigate("/vehicle")}
               />
-            </Tooltip>
+            </Box>
+          )}
+          <Box sx={{ display: "flex", gap: 1 }}>
             {result ? (
               <Box sx={{ display: "flex", flexGrow: 1 }}>
                 <Button
                   variant="contained"
-                  disabled={planner.busy}
+                  disabled={planner.busy || !activeVehicle}
                   onClick={planner.onFind}
                   sx={{
                     flexGrow: 1,
@@ -466,7 +481,7 @@ export default function RouteScreen() {
             ) : (
               <Button
                 variant="contained"
-                disabled={planner.busy}
+                disabled={planner.busy || !activeVehicle}
                 onClick={planner.onFind}
                 sx={{ flexGrow: 1 }}
               >
@@ -483,7 +498,7 @@ export default function RouteScreen() {
               <Button
                 variant="outlined"
                 color="secondary"
-                disabled={planner.busy}
+                disabled={planner.busy || !activeVehicle}
                 onClick={() => planner.reroute()}
                 sx={{ flexGrow: 1 }}
               >

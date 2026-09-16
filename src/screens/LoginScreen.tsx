@@ -13,13 +13,14 @@ import { auth } from "../auth/firebase";
 import { register } from "../api/auth";
 import { toMessage } from "../api/client";
 import { useAuth } from "../context/AuthContext";
+import { useProfile } from "../context/ProfileContext";
 import { useStrings } from "../context/LanguageContext";
 import { brandTileUrl } from "../map/style";
-import { hasChosenRole } from "../storage/roleChoice";
 
 export default function LoginScreen() {
   const { t } = useStrings();
   const { signIn } = useAuth();
+  const { refresh } = useProfile();
   const navigate = useNavigate();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -43,7 +44,16 @@ export default function LoginScreen() {
       const cred = await signInWithEmailAndPassword(auth, email, password);
       const token = await cred.user.getIdToken();
       signIn(cred.user.uid, token);
-      navigate(hasChosenRole() ? "/" : "/roles");
+      const next = await refresh();
+      if (!next) {
+        navigate("/");
+      } else if (next.user.onboarded !== true) {
+        navigate("/roles");
+      } else if (next.vehicles.length === 0) {
+        navigate("/vehicle");
+      } else {
+        navigate("/");
+      }
     } catch (err) {
       setError(toMessage(err));
     } finally {

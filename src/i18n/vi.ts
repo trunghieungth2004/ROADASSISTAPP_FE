@@ -40,9 +40,7 @@ export const vi: Strings = {
     tapToSet: "Chạm bản đồ để chọn",
     addStop: "Thêm điểm dừng",
     stops: "Điểm dừng",
-    width: "Chiều rộng (m)",
-    widthHint: "Chiều rộng xe của bạn. Lộ trình tránh hẻm hẹp hơn mức này",
-    widthNote: "Tính cho xe rộng {w} m",
+    vehicleCta: "Thêm xe của bạn trước để lập lộ trình",
     find: "Tìm đường",
     needPoints: "Hãy chọn điểm đi và điểm đến trước",
     fromCache: "đã lưu",
@@ -127,6 +125,7 @@ export const vi: Strings = {
     width: "Chiều rộng",
     profiles: "Hồ sơ xe",
     none: "Chưa có xe nào.",
+    onboarding: "Thêm xe đầu tiên — lộ trình và cứu hộ sẽ tự dùng xe này.",
     create: "Thêm xe",
     type: "Loại xe",
     types: {

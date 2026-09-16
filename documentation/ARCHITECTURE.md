@@ -31,7 +31,7 @@
 └────────────────────────────────────────────────────┘
                           ↓
 ┌────────────────────────────────────────────────────┐
-│  Platform (map/*, auth/*, storage, vehicleWidth)    │
+│  Platform (map/*, auth/*, storage)                 │
 │  - MapTiler SDK setup, Firebase auth, localStorage │
 └────────────────────────────────────────────────────┘
 
@@ -110,26 +110,39 @@ things look like / compute to).
   free-form tow destinations, with registered-shop suggestions. The
   preview card carries the ticket lifecycle (create/lookup, statuses,
   walk results, offers with `fitsAlley` labels, ratings). The active
-  vehicle (`storage/activeVehicle.ts`, set from VehicleScreen) rides on
+  vehicle (from `ProfileContext`, persisted server-side) rides on
   every ticket as `vehicleType`/`vehicleWidth`.
 - `screens/RolePickerScreen.tsx` — post-first-login role chooser
   (`/roles`, re-openable from More): Rider, Shop, Mobile shop, Tow
   (with tow-vehicle picker), Volunteer (with `SOLO_BIKE`/`CAR`
   capability). Business registration uses `PlaceField` + GPS with
   reverse-geocoded labels; owned shops persist in
-  `storage/myShops.ts` for the accepting toggle. Login redirects to
-  `/roles` until `storage/roleChoice.ts` is marked.
+  `storage/myShops.ts` for the accepting toggle. Every completion path
+  writes `PUT /users/onboard`; login redirects to `/roles` until the
+  server reports `onboarded`, then to `/vehicle` when the user owns no
+  rider vehicle.
 - `screens/VolunteerRadarScreen.tsx` — pending-SOS radar with accept;
   the server filters the radar by the volunteer's own capability.
 - `screens/VehicleScreen.tsx` — profiles now include `CAR` (1.9 m
-  default); each profile can be marked as the assist vehicle.
+  default); "Use for assist" persists via `PUT /users/activeVehicle`
+  and drives routing plus assist. An empty list shows the onboarding
+  hint; creating the first profile syncs `ProfileContext`.
+- `screens/RouteScreen.tsx` — no width input: `useRoutePlanner`
+  routes with `width`/`vehicleType` straight from the active vehicle
+  (no auto-width fallback). Without an active vehicle the Find/Reroute
+  buttons disable and an alert links to `/vehicle`.
 - `components/FlagDetailSheet.tsx` — Deny button beside Confirm for
   others' suggested flags (vote tracked in `storage/votedFlags.ts`).
 - `components/NearbyFlags.tsx`, `components/MapView.tsx` — pre-layer
   components; `NearbyFlags` still fetches its own data (next extraction
   candidate if it grows).
-- `storage/` — localStorage-backed mini-stores (`vehicleWidth`,
-  `votedFlags`).
+- `storage/` — localStorage-backed mini-stores (`myShops`,
+  `votedFlags`) plus the `roadassist.profile` mirror.
+- `context/ProfileContext.tsx` — login bootstrap: `POST /users/me`
+  after sign-in and on cold start, mirrored to localStorage for offline
+  starts; exposes user, vehicles, active vehicle, onboarding state, and
+  the `activateVehicle` / `markOnboarded` writers. Auto-activates the
+  first profile once when a user owns vehicles but none is active.
 - `context/AuthContext.tsx` — session owner: persists every token from
   `onIdTokenChanged` (same-user rotations included, so the stored token
   never goes stale), validates the session on mount / every 60 s / on

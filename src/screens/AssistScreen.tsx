@@ -33,6 +33,7 @@ import { nearShops, type Shop } from "../api/shops";
 import MapView, { type MapClick } from "../components/MapView";
 import PlaceField from "../components/PlaceField";
 import { useAuth } from "../context/AuthContext";
+import { useProfile } from "../context/ProfileContext";
 import { useStrings } from "../context/LanguageContext";
 import {
   shopTypeLabel,
@@ -40,7 +41,6 @@ import {
   vehicleTypeLabel,
 } from "../i18n/labels";
 import { usePlaceSearch } from "../hooks/usePlaceSearch";
-import { getActiveVehicle } from "../storage/activeVehicle";
 
 const TICKET_TYPES: TicketType[] = ["MECHANIC", "TOW", "SOS"];
 const LAST_TICKET_KEY = "roadassist.lastTicket";
@@ -77,6 +77,7 @@ function fitLabel(
 export default function AssistScreen() {
   const { t, lang } = useStrings();
   const { token, uid } = useAuth();
+  const { activeVehicle: vehicle } = useProfile();
   const navigate = useNavigate();
   const destSearch = usePlaceSearch(lang);
   const [map, setMap] = useState<maptilersdk.Map | null>(null);
@@ -219,8 +220,6 @@ export default function AssistScreen() {
     setDest({ lat: place.lat, lng: place.lng, label: place.label });
     setDestShopId("");
   }
-
-  const vehicle = getActiveVehicle();
 
   async function onCreate() {
     if (!token || !point) {

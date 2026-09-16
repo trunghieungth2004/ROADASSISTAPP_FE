@@ -17,6 +17,7 @@ import TwoWheelerIcon from "@mui/icons-material/TwoWheeler";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { LanguageProvider, useStrings } from "./context/LanguageContext";
+import { ProfileProvider } from "./context/ProfileContext";
 import AssistScreen from "./screens/AssistScreen";
 import VolunteerRadarScreen from "./screens/VolunteerRadarScreen";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -85,7 +86,8 @@ export default function App() {
   return (
     <LanguageProvider>
       <AuthProvider>
-        <BrowserRouter>
+        <ProfileProvider>
+          <BrowserRouter>
           <Box
             sx={{
               display: "flex",
@@ -178,6 +180,7 @@ export default function App() {
             <Tabs />
           </Box>
         </BrowserRouter>
+        </ProfileProvider>
       </AuthProvider>
     </LanguageProvider>
   );

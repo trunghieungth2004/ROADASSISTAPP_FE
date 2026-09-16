@@ -22,8 +22,7 @@ import {
   type RouteOption,
   type WidthBlock,
 } from "../api/routes";
-import { getRoutingWidth, setRoutingWidth } from "../storage/vehicleWidth";
-import { getActiveVehicle } from "../storage/activeVehicle";
+import { useProfile } from "../context/ProfileContext";
 import { dot, drawRoutes, drawZones, formatCoord, handle } from "../services/routeView";
 import { usePlaceSearch, type PlaceSearch } from "./usePlaceSearch";
 
@@ -39,6 +38,7 @@ type UseRoutePlannerArgs = {
   token: string | null;
   lang: string;
   needPointsMessage: string;
+  needVehicleMessage: string;
 };
 
 export type RoutePlanner = {
@@ -48,8 +48,6 @@ export type RoutePlanner = {
   dest: LatLng | null;
   stops: LatLng[];
   setStops: Dispatch<SetStateAction<LatLng[]>>;
-  width: string;
-  setWidth: (width: string) => void;
   routes: RouteOption[];
   selected: number;
   setSelected: (index: number) => void;
@@ -89,9 +87,11 @@ export function useRoutePlanner({
   token,
   lang,
   needPointsMessage,
+  needVehicleMessage,
 }: UseRoutePlannerArgs): RoutePlanner {
   const navigate = useNavigate();
   const location = useLocation();
+  const { activeVehicle } = useProfile();
   const mapRef = useRef<maptilersdk.Map | null>(null);
   const markersRef = useRef<maptilersdk.Marker[]>([]);
   const [mapInstance, setMapInstance] = useState<maptilersdk.Map | null>(null);
@@ -100,7 +100,6 @@ export function useRoutePlanner({
   const [origin, setOrigin] = useState<LatLng | null>(null);
   const [dest, setDest] = useState<LatLng | null>(null);
   const [stops, setStops] = useState<LatLng[]>([]);
-  const [width, setWidth] = useState(() => String(getRoutingWidth()));
   const [routes, setRoutes] = useState<RouteOption[]>([]);
   const [selected, setSelected] = useState(0);
   const result = routes[selected] ?? null;
@@ -175,9 +174,9 @@ export function useRoutePlanner({
     setSelected(0);
     setFailure(null);
     try {
-      const w = Number(width);
-      if (Number.isFinite(w) && w > 0) {
-        setRoutingWidth(w);
+      if (!activeVehicle) {
+        setFailure({ message: needVehicleMessage, zones: [], blocks: [] });
+        return;
       }
       const res = await findRoute(
         {
@@ -186,8 +185,8 @@ export function useRoutePlanner({
           destLat: d.lat,
           destLng: d.lng,
           stops: s,
-          width: Number.isFinite(w) && w > 0 ? w : undefined,
-          vehicleType: getActiveVehicle()?.type,
+          width: activeVehicle.baseWidth,
+          vehicleType: activeVehicle.type,
         },
         token ?? "",
       );
@@ -224,9 +223,6 @@ export function useRoutePlanner({
           formatCoord({ lat: saved.originLat, lng: saved.originLng }),
         );
         destSearch.pin(formatCoord({ lat: saved.destLat, lng: saved.destLng }));
-        if (saved.width != null) {
-          setWidth(String(saved.width));
-        }
         const source =
           saved.source === "cache" || saved.source === "detour"
             ? saved.source
@@ -560,8 +556,6 @@ export function useRoutePlanner({
     dest,
     stops,
     setStops,
-    width,
-    setWidth,
     routes,
     selected,
     setSelected,

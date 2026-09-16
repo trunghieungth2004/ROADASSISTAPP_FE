@@ -19,14 +19,9 @@ import {
   type VehicleType,
 } from "../api/vehicles";
 import { useAuth } from "../context/AuthContext";
+import { useProfile } from "../context/ProfileContext";
 import { useStrings } from "../context/LanguageContext";
 import { configTypeLabel, vehicleTypeLabel } from "../i18n/labels";
-import {
-  getActiveVehicle,
-  setActiveVehicle,
-  type ActiveVehicle,
-} from "../storage/activeVehicle";
-import { setRoutingWidth } from "../storage/vehicleWidth";
 
 const TYPES: VehicleType[] = ["SCOOTER", "CUB", "MANUAL", "CAR"];
 const CONFIGS: ConfigType[] = ["SOLO", "PASSENGER", "CARGO"];
@@ -34,6 +29,7 @@ const CONFIGS: ConfigType[] = ["SOLO", "PASSENGER", "CARGO"];
 export default function VehicleScreen() {
   const { t } = useStrings();
   const { token } = useAuth();
+  const { activeVehicle, activateVehicle, refresh } = useProfile();
   const [profiles, setProfiles] = useState<VehicleProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,9 +41,6 @@ export default function VehicleScreen() {
   const [configType, setConfigType] = useState<ConfigType>("SOLO");
   const [estWidth, setEstWidth] = useState("0.9");
   const [estHeight, setEstHeight] = useState("");
-  const [active, setActive] = useState<ActiveVehicle | null>(() =>
-    getActiveVehicle(),
-  );
 
   function onTypeChange(next: VehicleType) {
     setType(next);
@@ -55,11 +48,14 @@ export default function VehicleScreen() {
     setBaseHeight(next === "CAR" ? "1.5" : "1.1");
   }
 
-  function onUseProfile(p: VehicleProfile) {
-    const next = { type: p.type, baseWidth: p.baseWidth };
-    setActiveVehicle(next);
-    setActive(next);
-    setNotice(t.vehicle.activeSaved);
+  async function onUseProfile(p: VehicleProfile) {
+    setError(null);
+    try {
+      await activateVehicle(p.id);
+      setNotice(t.vehicle.activeSaved);
+    } catch (err) {
+      setError(toMessage(err));
+    }
   }
 
   async function reload(key: string) {
@@ -101,6 +97,7 @@ export default function VehicleScreen() {
         token,
       );
       await reload(token);
+      await refresh();
     } catch (err) {
       setError(toMessage(err));
     }
@@ -124,9 +121,6 @@ export default function VehicleScreen() {
         token,
       );
       setNotice(t.vehicle.rideSaved);
-      if (estWidth && Number(estWidth) > 0) {
-        setRoutingWidth(Number(estWidth));
-      }
     } catch (err) {
       setError(toMessage(err));
     }
@@ -156,13 +150,9 @@ export default function VehicleScreen() {
             <CardContent>
               <Typography variant="subtitle1">{t.vehicle.profiles}</Typography>
               {profiles.length === 0 && (
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mt: 1 }}
-                >
-                  {t.vehicle.none}
-                </Typography>
+                <Alert severity="info" sx={{ mt: 1 }}>
+                  {t.vehicle.onboarding}
+                </Alert>
               )}
               {profiles.map((p) => (
                 <Box
@@ -182,15 +172,17 @@ export default function VehicleScreen() {
                   <Box>
                     <Typography variant="body2">
                       {vehicleTypeLabel(p.type, t)}
-                      {active?.type === p.type &&
-                        active?.baseWidth === p.baseWidth &&
-                        ` · ${t.vehicle.active}`}
+                      {activeVehicle?.id === p.id && ` · ${t.vehicle.active}`}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       {t.vehicle.width}: {p.baseWidth} m
                     </Typography>
                   </Box>
-                  <Button size="small" onClick={() => onUseProfile(p)}>
+                  <Button
+                    size="small"
+                    disabled={activeVehicle?.id === p.id}
+                    onClick={() => void onUseProfile(p)}
+                  >
                     {t.vehicle.useForAssist}
                   </Button>
                 </Box>
