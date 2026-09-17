@@ -55,3 +55,31 @@ export function updatePassability(
     token,
   );
 }
+
+export function fetchAlleySegment(
+  segmentId: string,
+  token: string,
+): Promise<AlleySegment> {
+  return api.post<AlleySegment>(
+    "/alleys/segment",
+    { segmentId },
+    token,
+  );
+}
+
+export function moderateSegment(
+  segmentId: string,
+  fields: Partial<
+    Pick<
+      AlleySegment,
+      "baseWidth" | "wireHeight" | "inclinePct" | "verifiedCount"
+    >
+  > & { tier?: Tier },
+  token: string,
+): Promise<{ updated: number }> {
+  return api.put<{ updated: number }>(
+    "/alleys/moderate",
+    { segmentId, ...fields },
+    token,
+  );
+}

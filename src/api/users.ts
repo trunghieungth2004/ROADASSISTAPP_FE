@@ -1,21 +1,5 @@
 import { api } from "./client";
 
-export type VolunteerCapability = "SOLO_BIKE" | "CAR";
-
-export type UserProfile = {
-  id: string;
-  email?: string | null;
-  displayName?: string | null;
-  role: string;
-  status?: string;
-  trustScore?: number;
-  volunteerAvailable?: boolean;
-  volunteerRadiusKm?: number;
-  capability?: VolunteerCapability;
-  ratingAvg?: number;
-  ratingCount?: number;
-};
-
 export type MeUser = {
   id: string;
   email?: string | null;
@@ -45,10 +29,6 @@ export type MeBundle = {
   activeVehicle: MeVehicle | null;
 };
 
-export function fetchMe(token: string): Promise<UserProfile> {
-  return api.post<UserProfile>("/users/one", {}, token);
-}
-
 export function fetchMeBundle(token: string): Promise<MeBundle> {
   return api.post<MeBundle>("/users/me", {}, token);
 }
@@ -65,7 +45,7 @@ export function setActiveVehicle(
 }
 
 export function setOnboarded(
-  payload: { role: string },
+  payload: { service: string },
   token: string,
 ): Promise<{ updated: number; onboarded: boolean; services: string[] }> {
   return api.put<{ updated: number; onboarded: boolean; services: string[] }>(
@@ -75,28 +55,63 @@ export function setOnboarded(
   );
 }
 
-export function setVolunteer(
-  payload: {
-    available: boolean;
-    volunteerRadiusKm?: number;
-    capability?: VolunteerCapability;
-  },
+export function updateProfile(
+  payload: { displayName: string },
   token: string,
-): Promise<{ updated: number; available: boolean }> {
-  return api.put<{ updated: number; available: boolean }>(
-    "/users/volunteer",
-    payload,
+): Promise<{ updated: number }> {
+  return api.put<{ updated: number }>("/users/profile", payload, token);
+}
+
+export type AdminUser = {
+  id: string;
+  email?: string | null;
+  displayName?: string | null;
+  role: string;
+  status?: string | null;
+  trustScore?: number | null;
+  ratingAvg?: number | null;
+  ratingCount?: number | null;
+  onboarded?: boolean;
+  services?: string[];
+  createdAt?: string;
+};
+
+export function fetchAllUsers(token: string): Promise<AdminUser[]> {
+  return api.post<AdminUser[]>("/users/all", {}, token);
+}
+
+export function updateUserRole(
+  targetUserId: string,
+  role: string,
+  token: string,
+): Promise<{ updated: number }> {
+  return api.put<{ updated: number }>(
+    "/users/role",
+    { targetUserId, role },
     token,
   );
 }
 
-export function volunteerHeartbeat(
-  payload: { lat: number; lng: number },
+export function updateUserTrust(
+  targetUserId: string,
+  trustScore: number,
   token: string,
-): Promise<{ uid: string }> {
-  return api.post<{ uid: string }>(
-    "/users/volunteer/heartbeat",
-    payload,
+): Promise<{ updated: number }> {
+  return api.put<{ updated: number }>(
+    "/users/trust",
+    { targetUserId, trustScore },
+    token,
+  );
+}
+
+export function updateUserStatus(
+  targetUserId: string,
+  status: string,
+  token: string,
+): Promise<{ updated: number }> {
+  return api.put<{ updated: number }>(
+    "/users/status",
+    { targetUserId, status },
     token,
   );
 }

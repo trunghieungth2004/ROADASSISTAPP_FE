@@ -28,6 +28,7 @@ import {
   type FlagType,
 } from "../api/flags";
 import MapView, { type MapClick } from "../components/MapView";
+import { formatPoint, resolveLabel } from "../api/places";
 import { flagStatusColor, flagStatusLabel } from "../components/flagStatus";
 import { useAuth } from "../context/AuthContext";
 import { useStrings } from "../context/LanguageContext";
@@ -39,9 +40,10 @@ const FLAG_TYPES: FlagType[] = ["FLOOD", "OBSTRUCTION", "ACCIDENT"];
 const TIERS: Tier[] = ["TIER1", "TIER2", "TIER3"];
 
 export default function HazardsScreen() {
-  const { t } = useStrings();
+  const { t, lang } = useStrings();
   const { token, uid } = useAuth();
   const [point, setPoint] = useState({ lat: mapDefaults.center[1], lng: mapDefaults.center[0] });
+  const [pointLabel, setPointLabel] = useState<string | null>(null);
   const [scope, setScope] = useState<"nearby" | "mine">("nearby");
   const [flags, setFlags] = useState<Flag[]>([]);
   const [mine, setMine] = useState<Flag[]>([]);
@@ -77,7 +79,10 @@ export default function HazardsScreen() {
   }, [token, point]);
 
   function onPick(p: MapClick) {
-    setPoint({ lat: p.lat, lng: p.lng });
+    const next = { lat: p.lat, lng: p.lng };
+    setPoint(next);
+    setPointLabel(formatPoint(next.lat, next.lng));
+    void resolveLabel(next.lat, next.lng, lang).then(setPointLabel);
   }
 
   async function onSubmitFlag(e: FormEvent) {
@@ -258,6 +263,13 @@ export default function HazardsScreen() {
       <Typography variant="caption" color="text.secondary">
         {t.hazards.pickPoint}
       </Typography>
+      <TextField
+        size="small"
+        fullWidth
+        value={pointLabel ?? formatPoint(point.lat, point.lng)}
+        slotProps={{ htmlInput: { readOnly: true } }}
+        sx={{ mt: 1 }}
+      />
       <Box sx={{ position: "relative", height: 224, mt: 1, borderRadius: 4, overflow: "hidden" }}>
         <MapView onClick={onPick} />
       </Box>

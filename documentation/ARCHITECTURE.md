@@ -94,39 +94,38 @@ things look like / compute to).
   bare style names; `streets-v2` is deprecated client-side).
   `brandTileUrl()` builds the blurred map-tile backdrop shared by the
   login panel and the More-screen brand header.
-- `screens/MoreScreen.tsx` — brand header (blurred tile + gradient +
-  app name, same visual as login), then Home, saved routes, appearance,
-  language, sign-out. Home lives here, not in the bottom tabs (`/route`,
-  `/hazards`, `/dispatch`, `/vehicle`, `/more`); `/` still renders
-  `HomeScreen` and stays the post-login landing.
+- `screens/MoreScreen.tsx` — profile card (avatar initials, name,
+  email, Admin/Rider chip, service badges, active vehicle) with a
+  rename dialog (`PUT /users/profile`), then Home, saved routes,
+  Roles, an admin-only entry to `/admin`, appearance, language,
+  sign-out. Home lives here, not in the bottom tabs (`/route`,
+  `/hazards`, `/vehicle`, `/more`); `/` still renders
+  `HomeScreen` and stays the post-login landing. The Assist tab stays in
+  the bottom nav as a disabled "Soon" entry — roadside assistance is
+  mobile-first and lives in the mobile app; the web client no longer
+  calls any `/dispatch/*`, `/ratings`, or `/shops/*` endpoint.
 - `components/PlaceField.tsx` — search-first A/B input (MapTiler
   autocomplete + pick-on-map), reused by the planner card.
 - `api/places.ts` — MapTiler forward-geocoding client (Vietnam-filtered)
   plus `reverseGeocode` for labeling map-tapped points.
-- `screens/AssistScreen.tsx` — map-based assist at `/dispatch`, cloning
-  the RouteScreen scaffold (full-screen `MapView`, top-left Assist Fab,
-  bottom preview card). Tap arms the breakdown point (red pin);
-  destination entry is a `PlaceField` plus pick-on-map (blue pin) for
-  free-form tow destinations, with registered-shop suggestions. The
-  preview card carries the ticket lifecycle (create/lookup, statuses,
-  walk results, offers with `fitsAlley` labels, ratings). The active
-  vehicle (from `ProfileContext`, persisted server-side) rides on
-  every ticket as `vehicleType`/`vehicleWidth`.
-- `screens/RolePickerScreen.tsx` — post-first-login role chooser
-  (`/roles`, re-openable from More): Rider, Shop, Mobile shop, Tow
-  (with tow-vehicle picker), Volunteer (with `SOLO_BIKE`/`CAR`
-  capability). Business registration uses `PlaceField` + GPS with
-  reverse-geocoded labels; owned shops persist in
-  `storage/myShops.ts` for the accepting toggle. Every completion path
-  writes `PUT /users/onboard`; login redirects to `/roles` until the
-  server reports `onboarded`, then to `/vehicle` when the user owns no
-  rider vehicle.
-- `screens/VolunteerRadarScreen.tsx` — pending-SOS radar with accept;
-  the server filters the radar by the volunteer's own capability.
+- `screens/AdminScreen.tsx` — `/admin`, gated by `RequireAdmin`
+  (`bundle.user.role === "1"`): Users tab (search, role/status/trust
+  edits), Flags tab (full queue via `POST /flags/all`, moderation,
+  expiry sweep), Alleys tab (load a segment by ID, edit passability).
+  First admin is bootstrapped manually in Firestore (`users/{uid}.role
+  = "1"`); the gate 403s everyone else.
+- `screens/RolePickerScreen.tsx` — post-first-login rider chooser
+  (`/roles`, re-openable from More). Role pick is skippable and
+  defaults to Rider; every completion path writes
+  `PUT /users/onboard`. Login redirects to `/roles` until the server
+  reports `onboarded`, then `VehicleGate` (`App.tsx`) pins users
+  without any vehicle to `/vehicle` (admins exempt) until one exists.
 - `screens/VehicleScreen.tsx` — profiles now include `CAR` (1.9 m
-  default); "Use for assist" persists via `PUT /users/activeVehicle`
-  and drives routing plus assist. An empty list shows the onboarding
-  hint; creating the first profile syncs `ProfileContext`.
+  default); "Use for routing" persists via `PUT /users/activeVehicle`
+  and drives routing. CAR/VAN/TRUCK profiles can be designated the tow
+  vehicle (`PUT /vehicleProfiles/tow`, one per user). An empty list
+  shows the onboarding hint; creating the first profile syncs
+  `ProfileContext`.
 - `screens/RouteScreen.tsx` — no width input: `useRoutePlanner`
   routes with `width`/`vehicleType` straight from the active vehicle
   (no auto-width fallback). Without an active vehicle the Find/Reroute
@@ -136,8 +135,8 @@ things look like / compute to).
 - `components/NearbyFlags.tsx`, `components/MapView.tsx` — pre-layer
   components; `NearbyFlags` still fetches its own data (next extraction
   candidate if it grows).
-- `storage/` — localStorage-backed mini-stores (`myShops`,
-  `votedFlags`) plus the `roadassist.profile` mirror.
+- `storage/` — localStorage-backed mini-stores (`votedFlags`) plus
+  the `roadassist.profile` mirror.
 - `context/ProfileContext.tsx` — login bootstrap: `POST /users/me`
   after sign-in and on cold start, mirrored to localStorage for offline
   starts; exposes user, vehicles, active vehicle, onboarding state, and

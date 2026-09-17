@@ -17,6 +17,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Snackbar from "@mui/material/Snackbar";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import { useColorScheme } from "@mui/material/styles";
 import AddAlertIcon from "@mui/icons-material/AddAlert";
 import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import SaveIcon from "@mui/icons-material/Save";
@@ -56,9 +57,10 @@ export default function RouteScreen() {
     token,
     lang,
     needPointsMessage: t.route.needPoints,
-    needVehicleMessage: t.dispatch.noVehicle,
+    needVehicleMessage: t.vehicle.noVehicle,
   });
   const { mode, setMode } = planner;
+  const { mode: colorMode } = useColorScheme();
   const [flagPoint, setFlagPoint] = useState<LatLng | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [flagBusy, setFlagBusy] = useState(false);
@@ -230,8 +232,16 @@ export default function RouteScreen() {
       (route) =>
         `${fmt(route.distanceMeters / 1000)} ${t.route.km} · ${fmt(route.durationSeconds / 60)} ${t.route.min}`,
       (i) => planner.setSelected(i),
+      colorMode === "dark",
     );
-  }, [planner.map, planner.mapReady, planner.routes, planner.selected, t]);
+  }, [
+    planner.map,
+    planner.mapReady,
+    planner.routes,
+    planner.selected,
+    t,
+    colorMode,
+  ]);
 
   async function onToggleSave(place: Place) {
     if (!token) {
@@ -277,13 +287,13 @@ export default function RouteScreen() {
         onPick={setSelected}
       />
       <Fab
-        variant="extended"
         color={mode === "flag" ? "secondary" : "primary"}
         sx={{ position: "absolute", top: 16, left: 16 }}
         onClick={() => setMode(mode === "flag" ? null : "flag")}
+        aria-label={t.route.flagMode}
+        title={t.route.flagMode}
       >
-        <AddAlertIcon sx={{ mr: 1 }} />
-        {t.route.flagMode}
+        <AddAlertIcon />
       </Fab>
       {mode === "flag" && (
         <Chip
@@ -304,14 +314,14 @@ export default function RouteScreen() {
         }}
       >
         <Fab
-          variant="extended"
           color="primary"
           disabled={!token}
           onClick={() => setSavedOpen(true)}
           sx={{ mb: 1 }}
+          aria-label={t.saved.short}
+          title={t.saved.short}
         >
-          <BookmarkBorderIcon sx={{ mr: 1 }} />
-          {t.saved.short}
+          <BookmarkBorderIcon />
         </Fab>
         <Card sx={{ width: "100%", maxHeight: "55dvh", overflowY: "auto" }}>
         <CardContent sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
@@ -463,7 +473,7 @@ export default function RouteScreen() {
             <TextField
               select
               size="small"
-              label={t.dispatch.myVehicle}
+              label={t.vehicle.myVehicle}
               value={activeVehicle?.id ?? ""}
               onChange={(e) => void onPickVehicle(e.target.value)}
               fullWidth

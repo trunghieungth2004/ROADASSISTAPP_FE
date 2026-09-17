@@ -16,7 +16,6 @@ import Typography from "@mui/material/Typography";
 import AddAlertIcon from "@mui/icons-material/AddAlert";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
 import RouteIcon from "@mui/icons-material/Route";
-import SosIcon from "@mui/icons-material/Sos";
 import TwoWheelerIcon from "@mui/icons-material/TwoWheeler";
 import { flagsNear, type Flag } from "../api/flags";
 import { flagStatusLabel } from "../components/flagStatus";
@@ -61,13 +60,6 @@ export default function HomeScreen() {
       icon: <AddAlertIcon color="primary" fontSize="large" />,
       to: "/route",
       state: { flagMode: true },
-    },
-    {
-      title: t.home.requestHelp,
-      hint: t.home.requestHelpHint,
-      icon: <SosIcon color="primary" fontSize="large" />,
-      to: "/dispatch",
-      state: undefined as { flagMode: boolean } | undefined,
     },
     {
       title: t.home.vehicle,

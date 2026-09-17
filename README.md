@@ -54,10 +54,13 @@ Token freshness: the context subscribes with `onIdTokenChanged` (not `onAuthStat
 | `/` | Home | Entry cards into each flow |
 | `/route` | Route planner | A/B place search (Vietnam-filtered MapTiler autocomplete) or map tap, up to 10 stops, vehicle width, up to 3 route alternatives with a selectable chip row (`N · km · min`) and tappable map pills, live hazard/width detours, save plan |
 | `/hazards` | Nearby hazards + my reports | Browse nearby flags, confirm, retract own reports |
-| `/dispatch` | Roadside assistance | Create and track help tickets |
-| `/vehicle` | My vehicle | Vehicle profiles and ride setup |
+| `/vehicle` | My vehicle | Vehicle profiles, ride setup, tow-vehicle designation |
 | `/saved` | Saved routes | Open, rename, delete, re-route saved plans |
-| `/more` | Settings | Appearance, language (EN/VI), sign out |
+| `/more` | Settings | Profile card + rename, roles, admin (admins), appearance, language (EN/VI), sign out |
+| `/roles` | Rider onboarding | Skippable role pick (defaults to Rider); redirects to `/vehicle` until a vehicle exists |
+| `/admin` | Admin (role `1` only) | Users (role/status/trust), flag queue + moderation + expiry, alley passability |
+
+Roadside assistance (`/dispatch`) is intentionally **not** in the web app: the Assist tab stays in the bottom nav as a disabled "Soon" entry. Assist, provider requests, and volunteer radar are mobile-first — the backend `/dispatch/*` endpoints remain for the mobile client, but the web client no longer calls them.
 
 Unauthenticated visits redirect to `/login`; the bottom tab bar appears once signed in.
 

@@ -289,6 +289,19 @@ export async function reverseGeocode(
   }
 }
 
+export function formatPoint(lat: number, lng: number): string {
+  return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+}
+
+export async function resolveLabel(
+  lat: number,
+  lng: number,
+  lang: string,
+): Promise<string> {
+  const place = await reverseGeocode(lat, lng, lang);
+  return place?.label ?? formatPoint(lat, lng);
+}
+
 export async function searchDirectory(
   query: string,
   token: string,

@@ -4,6 +4,7 @@ export type RegisterPayload = {
   email: string;
   password: string;
   displayName?: string;
+  phone: string;
 };
 
 export type RegisterResult = {

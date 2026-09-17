@@ -177,17 +177,44 @@ function drawZonesInner(
   }
 }
 
-function pillEl(active: boolean): HTMLDivElement {
+type PillColors = {
+  activeBg: string;
+  activeText: string;
+  activeBorder: string;
+  idleBg: string;
+  idleText: string;
+  idleBorder: string;
+};
+
+const LIGHT_PILLS: PillColors = {
+  activeBg: "#0284c7",
+  activeText: "#ffffff",
+  activeBorder: "#ffffff",
+  idleBg: "#334155",
+  idleText: "#ffffff",
+  idleBorder: "#ffffff",
+};
+
+const DARK_PILLS: PillColors = {
+  activeBg: "#38bdf8",
+  activeText: "#082f49",
+  activeBorder: "#0c4a6e",
+  idleBg: "#1e293b",
+  idleText: "#ffffff",
+  idleBorder: "#94a3b8",
+};
+
+function pillEl(active: boolean, dark: boolean): HTMLDivElement {
   const el = document.createElement("div");
-  el.style.background = active ? "#0284c7" : "#94a3b8";
-  el.style.opacity = active ? "1" : "0.75";
-  el.style.color = "#fff";
+  const colors = dark ? DARK_PILLS : LIGHT_PILLS;
+  el.style.background = active ? colors.activeBg : colors.idleBg;
+  el.style.color = active ? colors.activeText : colors.idleText;
   el.style.fontSize = "15px";
   el.style.fontWeight = "700";
   el.style.whiteSpace = "nowrap";
   el.style.padding = "6px 14px";
   el.style.borderRadius = "9999px";
-  el.style.border = "2px solid #fff";
+  el.style.border = `2px solid ${active ? colors.activeBorder : colors.idleBorder}`;
   el.style.boxShadow = "0 2px 8px rgba(0,0,0,.4)";
   return el;
 }
@@ -195,10 +222,13 @@ function pillEl(active: boolean): HTMLDivElement {
 function stylePill(
   el: HTMLElement,
   active: boolean,
+  dark: boolean,
   onTap: (() => void) | undefined,
 ): void {
-  el.style.background = active ? "#0284c7" : "#94a3b8";
-  el.style.opacity = active ? "1" : "0.75";
+  const colors = dark ? DARK_PILLS : LIGHT_PILLS;
+  el.style.background = active ? colors.activeBg : colors.idleBg;
+  el.style.color = active ? colors.activeText : colors.idleText;
+  el.style.border = `2px solid ${active ? colors.activeBorder : colors.idleBorder}`;
   el.style.cursor = onTap ? "pointer" : "";
   el.onclick = onTap
     ? (e) => {
@@ -216,9 +246,10 @@ export function drawRoutePills(
   selected: number,
   textFor: (route: RouteOption) => string,
   onSelect?: (index: number) => void,
+  dark?: boolean,
 ): void {
   try {
-    drawRoutePillsInner(map, routes, selected, textFor, onSelect);
+    drawRoutePillsInner(map, routes, selected, textFor, onSelect, dark === true);
   } catch (err) {
     console.error(err);
   }
@@ -229,7 +260,8 @@ function drawRoutePillsInner(
   routes: RouteOption[],
   selected: number,
   textFor: (route: RouteOption) => string,
-  onSelect?: (index: number) => void,
+  onSelect: ((index: number) => void) | undefined,
+  dark: boolean,
 ): void {
   for (const [i, pill] of routePills) {
     if (pill.map === map && i < routes.length) {
@@ -256,12 +288,12 @@ function drawRoutePillsInner(
       if (el.textContent !== text) {
         el.textContent = text;
       }
-      stylePill(el, active, onTap);
+      stylePill(el, active, dark, onTap);
       return;
     }
     existing?.marker.remove();
-    const element = pillEl(active);
-    stylePill(element, active, onTap);
+    const element = pillEl(active, dark);
+    stylePill(element, active, dark, onTap);
     const marker = new maptilersdk.Marker({
       element,
       anchor: "bottom",

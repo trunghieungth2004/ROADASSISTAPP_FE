@@ -26,6 +26,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -39,20 +40,17 @@ export default function LoginScreen() {
           email,
           password,
           displayName: displayName || undefined,
+          phone,
         });
       }
       const cred = await signInWithEmailAndPassword(auth, email, password);
       const token = await cred.user.getIdToken();
       signIn(cred.user.uid, token);
       const next = await refresh();
-      if (!next) {
+      if (!next || next.user.onboarded === true) {
         navigate("/");
-      } else if (next.user.onboarded !== true) {
-        navigate("/roles");
-      } else if (next.vehicles.length === 0) {
-        navigate("/vehicle");
       } else {
-        navigate("/");
+        navigate("/roles");
       }
     } catch (err) {
       setError(toMessage(err));
@@ -176,6 +174,17 @@ export default function LoginScreen() {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 autoComplete="name"
+                fullWidth
+              />
+            )}
+            {mode === "register" && (
+              <TextField
+                label={t.auth.phone}
+                type="tel"
+                required
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                autoComplete="tel"
                 fullWidth
               />
             )}

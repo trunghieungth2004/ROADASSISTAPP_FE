@@ -17,9 +17,8 @@ import TwoWheelerIcon from "@mui/icons-material/TwoWheeler";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { LanguageProvider, useStrings } from "./context/LanguageContext";
-import { ProfileProvider } from "./context/ProfileContext";
-import AssistScreen from "./screens/AssistScreen";
-import VolunteerRadarScreen from "./screens/VolunteerRadarScreen";
+import { ProfileProvider, useProfile } from "./context/ProfileContext";
+import AdminScreen from "./screens/AdminScreen";
 import ErrorBoundary from "./components/ErrorBoundary";
 import HazardsScreen from "./screens/HazardsScreen";
 import HomeScreen from "./screens/HomeScreen";
@@ -34,6 +33,18 @@ function RequireAuth({ children }: { children: ReactNode }) {
   const { token } = useAuth();
   if (!token) {
     return <Navigate to="/login" replace />;
+  }
+  return children;
+}
+
+function RequireAdmin({ children }: { children: ReactNode }) {
+  const { token } = useAuth();
+  const { loading, user } = useProfile();
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  if (!loading && user?.role !== "1") {
+    return <Navigate to="/" replace />;
   }
   return children;
 }
@@ -64,9 +75,10 @@ function Tabs() {
         icon={<WarningAmberIcon />}
       />
       <BottomNavigationAction
-        label={t.tabs.dispatch}
+        label={`${t.tabs.dispatch} · ${t.tabs.soon}`}
         value="/dispatch"
         icon={<BuildIcon />}
+        disabled
       />
       <BottomNavigationAction
         label={t.tabs.vehicle}
@@ -87,8 +99,8 @@ export default function App() {
     <LanguageProvider>
       <AuthProvider>
         <ProfileProvider>
-          <BrowserRouter>
-          <Box
+            <BrowserRouter>
+            <Box
             sx={{
               display: "flex",
               flexDirection: "column",
@@ -126,22 +138,6 @@ export default function App() {
                   }
                 />
                 <Route
-                  path="/dispatch"
-                  element={
-                    <RequireAuth>
-                      <AssistScreen />
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/volunteer"
-                  element={
-                    <RequireAuth>
-                      <VolunteerRadarScreen />
-                    </RequireAuth>
-                  }
-                />
-                <Route
                   path="/vehicle"
                   element={
                     <RequireAuth>
@@ -171,6 +167,14 @@ export default function App() {
                     <RequireAuth>
                       <RolePickerScreen />
                     </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/admin"
+                  element={
+                    <RequireAdmin>
+                      <AdminScreen />
+                    </RequireAdmin>
                   }
                 />
                 <Route path="*" element={<Navigate to="/" replace />} />

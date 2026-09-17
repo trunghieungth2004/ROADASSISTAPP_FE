@@ -27,7 +27,7 @@ type ProfileState = {
   hasVehicle: boolean;
   refresh: () => Promise<MeBundle | null>;
   activateVehicle: (profileId: string | null) => Promise<void>;
-  markOnboarded: (role: string) => Promise<void>;
+  markOnboarded: (service: string) => Promise<void>;
 };
 
 const ProfileContext = createContext<ProfileState | null>(null);
@@ -135,11 +135,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   );
 
   const markOnboarded = useCallback(
-    async (role: string) => {
+    async (service: string) => {
       if (!token || !uid) {
         return;
       }
-      const res = await apiSetOnboarded({ role }, token);
+      const res = await apiSetOnboarded({ service }, token);
       setBundle((prev) => {
         if (!prev) {
           return prev;

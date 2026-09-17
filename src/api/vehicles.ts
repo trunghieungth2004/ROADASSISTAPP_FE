@@ -2,12 +2,6 @@ import { api } from "./client";
 
 export type VehicleType = "SCOOTER" | "CUB" | "MANUAL" | "CAR";
 
-export const CAR_VEHICLE_TYPES: ReadonlySet<string> = new Set([
-  "CAR",
-  "VAN",
-  "TRUCK",
-]);
-
 export const VEHICLE_DEFAULT_WIDTH: Record<string, number> = {
   SCOOTER: 0.7,
   CUB: 0.7,
@@ -22,6 +16,7 @@ export type VehicleProfile = {
   type: string;
   baseWidth: number;
   baseHeight: number;
+  towVehicleType?: string | null;
   createdAt: string;
 };
 
@@ -56,6 +51,20 @@ export function addRideConfig(
   return api.post<{ id: string }>(
     "/vehicleProfiles/rideConfig",
     payload,
+    token,
+  );
+}
+
+export type TowVehicleType = "CAR" | "VAN" | "TRUCK";
+
+export function setTowVehicle(
+  profileId: string,
+  towVehicleType: TowVehicleType | null,
+  token: string,
+): Promise<VehicleProfile> {
+  return api.put<VehicleProfile>(
+    "/vehicleProfiles/tow",
+    { profileId, towVehicleType },
     token,
   );
 }

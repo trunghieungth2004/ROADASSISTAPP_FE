@@ -18,8 +18,10 @@ import {
   addRideConfig,
   createProfile,
   listProfiles,
+  setTowVehicle,
   VEHICLE_DEFAULT_WIDTH,
   type ConfigType,
+  type TowVehicleType,
   type VehicleProfile,
   type VehicleType,
 } from "../api/vehicles";
@@ -30,6 +32,8 @@ import { configTypeLabel, vehicleTypeLabel } from "../i18n/labels";
 
 const TYPES: VehicleType[] = ["SCOOTER", "CUB", "MANUAL", "CAR"];
 const CONFIGS: ConfigType[] = ["SOLO", "PASSENGER", "CARGO"];
+const TOW_TYPES: TowVehicleType[] = ["CAR", "VAN", "TRUCK"];
+const TOWABLE = new Set(["CAR", "VAN", "TRUCK"]);
 
 export default function VehicleScreen() {
   const { t } = useStrings();
@@ -59,6 +63,22 @@ export default function VehicleScreen() {
     try {
       await activateVehicle(p.id);
       setNotice(t.vehicle.activeSaved);
+    } catch (err) {
+      setError(toMessage(err));
+    }
+  }
+
+  async function onSetTow(p: VehicleProfile, next: TowVehicleType | null) {
+    if (!token) {
+      return;
+    }
+    setError(null);
+    setNotice(null);
+    try {
+      await setTowVehicle(p.id, next, token);
+      await reload(token);
+      await refresh();
+      setNotice(t.vehicle.towSaved);
     } catch (err) {
       setError(toMessage(err));
     }
@@ -174,32 +194,63 @@ export default function VehicleScreen() {
                   key={p.id}
                   sx={{
                     mt: 1,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 1,
                     bgcolor: "action.hover",
                     borderRadius: 2,
                     px: 1.5,
                     py: 1,
                   }}
                 >
-                  <Box>
-                    <Typography variant="body2">
-                      {vehicleTypeLabel(p.type, t)}
-                      {activeVehicle?.id === p.id && ` · ${t.vehicle.active}`}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {t.vehicle.width}: {p.baseWidth} m
-                    </Typography>
-                  </Box>
-                  <Button
-                    size="small"
-                    disabled={activeVehicle?.id === p.id}
-                    onClick={() => void onUseProfile(p)}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 1,
+                    }}
                   >
-                    {t.vehicle.useForAssist}
-                  </Button>
+                    <Box>
+                      <Typography variant="body2">
+                        {vehicleTypeLabel(p.type, t)}
+                        {activeVehicle?.id === p.id &&
+                          ` · ${t.vehicle.active}`}
+                        {p.towVehicleType &&
+                          ` · ${t.vehicle.towVehicle}: ${p.towVehicleType}`}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {t.vehicle.width}: {p.baseWidth} m
+                      </Typography>
+                    </Box>
+                    <Button
+                      size="small"
+                      disabled={activeVehicle?.id === p.id}
+                      onClick={() => void onUseProfile(p)}
+                    >
+                      {t.vehicle.useForRoute}
+                    </Button>
+                  </Box>
+                  {TOWABLE.has(p.type) && (
+                    <TextField
+                      select
+                      size="small"
+                      label={t.vehicle.towVehicle}
+                      value={p.towVehicleType ?? ""}
+                      onChange={(e) =>
+                        void onSetTow(
+                          p,
+                          (e.target.value as TowVehicleType) || null,
+                        )
+                      }
+                      fullWidth
+                      sx={{ mt: 1 }}
+                    >
+                      <MenuItem value="">{t.vehicle.towNone}</MenuItem>
+                      {TOW_TYPES.map((v) => (
+                        <MenuItem key={v} value={v}>
+                          {v}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  )}
                 </Box>
               ))}
             </CardContent>

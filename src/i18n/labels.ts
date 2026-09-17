@@ -12,18 +12,6 @@ export function configTypeLabel(value: string, t: Strings): string {
   return pick(t.vehicle.configs as Record<string, string>, value);
 }
 
-export function towVehicleLabel(value: string, t: Strings): string {
-  return pick(t.roles.towVehicles as Record<string, string>, value);
-}
-
-export function ticketTypeLabel(value: string, t: Strings): string {
-  return pick(t.dispatch.ticketTypes as Record<string, string>, value);
-}
-
-export function shopTypeLabel(value: string, t: Strings): string {
-  return pick(t.dispatch.shopTypes as Record<string, string>, value);
-}
-
 export function flagTypeLabel(value: string, t: Strings): string {
   if (value === "FLOOD") {
     return t.flag.flood;

@@ -84,3 +84,29 @@ export function flagsNear(
 export function myFlags(token: string): Promise<Flag[]> {
   return api.post<Flag[]>("/flags/mine", {}, token);
 }
+
+export type AdminFlag = Flag & {
+  reporterUid?: string;
+  voteCount: number;
+  createdAt?: string;
+};
+
+export function fetchAllFlags(token: string): Promise<AdminFlag[]> {
+  return api.post<AdminFlag[]>("/flags/all", {}, token);
+}
+
+export function moderateFlag(
+  flagId: string,
+  status: string,
+  token: string,
+): Promise<{ updated: number }> {
+  return api.put<{ updated: number }>(
+    "/flags/moderate",
+    { flagId, status },
+    token,
+  );
+}
+
+export function expireFlags(token: string): Promise<{ expired: number }> {
+  return api.post<{ expired: number }>("/flags/expire", {}, token);
+}

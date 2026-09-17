@@ -1,36 +1,50 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Alert from "@mui/material/Alert";
+import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
+import Chip from "@mui/material/Chip";
 import Container from "@mui/material/Container";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
 import Divider from "@mui/material/Divider";
 import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import MenuItem from "@mui/material/MenuItem";
-import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import HomeIcon from "@mui/icons-material/Home";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import LogoutIcon from "@mui/icons-material/Logout";
 import TranslateIcon from "@mui/icons-material/Translate";
-import VolunteerIcon from "@mui/icons-material/VolunteerActivism";
+import WorkspacesIcon from "@mui/icons-material/Workspaces";
 import { useColorScheme } from "@mui/material/styles";
 import { toMessage } from "../api/client";
-import {
-  fetchMe,
-  setVolunteer,
-  volunteerHeartbeat,
-  type VolunteerCapability,
-} from "../api/users";
+import { updateProfile } from "../api/users";
 import { useAuth } from "../context/AuthContext";
+import { useProfile } from "../context/ProfileContext";
 import { useStrings } from "../context/LanguageContext";
+import { vehicleTypeLabel } from "../i18n/labels";
 import { brandTileUrl } from "../map/style";
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) {
+    return "?";
+  }
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase();
+  }
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
 export default function MoreScreen() {
   const { t, lang, toggle } = useStrings();
@@ -38,49 +52,32 @@ export default function MoreScreen() {
   const navigate = useNavigate();
   const { mode, setMode } = useColorScheme();
   const dark = mode === "dark";
-  const [volunteer, setVolunteerOn] = useState(false);
-  const [capability, setCapability] =
-    useState<VolunteerCapability>("SOLO_BIKE");
-  const [volError, setVolError] = useState<string | null>(null);
+  const { user, activeVehicle, refresh } = useProfile();
+  const [editOpen, setEditOpen] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (token) {
-      fetchMe(token)
-        .then((me) => {
-          setVolunteerOn(me.volunteerAvailable === true);
-          if (me.capability === "CAR" || me.capability === "SOLO_BIKE") {
-            setCapability(me.capability);
-          }
-        })
-        .catch(() => setVolunteerOn(false));
-    }
-  }, [token]);
+  const displayName = user?.displayName || user?.email || "—";
+  const services = user?.services ?? [];
+  const isAdmin = user?.role === "1";
 
-  async function onVolunteer(next: boolean, cap?: VolunteerCapability) {
-    if (!token) {
+  function openEdit() {
+    setNameDraft(user?.displayName ?? "");
+    setEditError(null);
+    setEditOpen(true);
+  }
+
+  async function onSaveName() {
+    if (!token || !nameDraft.trim()) {
       return;
     }
-    setVolError(null);
+    setEditError(null);
     try {
-      const res = await setVolunteer(
-        {available: next, capability: cap ?? capability},
-        token,
-      );
-      setVolunteerOn(res.available);
-      if (res.available) {
-        const pos = await new Promise<GeolocationPosition>(
-          (resolve, reject) =>
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              timeout: 8000,
-            }),
-        );
-        await volunteerHeartbeat(
-          { lat: pos.coords.latitude, lng: pos.coords.longitude },
-          token,
-        );
-      }
+      await updateProfile({ displayName: nameDraft.trim() }, token);
+      await refresh();
+      setEditOpen(false);
     } catch (err) {
-      setVolError(toMessage(err));
+      setEditError(toMessage(err));
     }
   }
 
@@ -117,38 +114,16 @@ export default function MoreScreen() {
             p: 2,
           }}
         >
-          <svg
-            viewBox="0 0 220 140"
-            width="72"
-            height="46"
-            aria-hidden
-            style={{ flexShrink: 0 }}
-          >
-            <path
-              d="M12 126 C 56 122, 62 80, 96 80 S 168 44, 200 22"
-              fill="none"
-              stroke="rgba(255,255,255,0.85)"
-              strokeWidth="5"
-              strokeLinecap="round"
-              strokeDasharray="1 14"
-            />
-            <circle
-              cx="200"
-              cy="22"
-              r="12"
-              fill="#fbbf24"
-              stroke="#ffffff"
-              strokeWidth="3"
-            />
-            <circle cx="200" cy="22" r="4.5" fill="#451a03" />
-          </svg>
-          <Box sx={{ minWidth: 0 }}>
+          <Avatar sx={{ width: 56, height: 56 }}>
+            {initials(displayName)}
+          </Avatar>
+          <Box sx={{ minWidth: 0, flexGrow: 1 }}>
             <Typography
               variant="h6"
               component="h1"
               sx={{ color: dark ? "#000000" : "#ffffff" }}
             >
-              {t.appName}
+              {displayName}
             </Typography>
             <Typography
               variant="body2"
@@ -156,11 +131,64 @@ export default function MoreScreen() {
                 color: dark ? "#000000" : "rgba(255,255,255,0.92)",
               }}
             >
-              {t.home.subtitle}
+              {user?.email ?? ""}
             </Typography>
+            <Box sx={{ mt: 0.5, display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+              <Chip
+                size="small"
+                label={isAdmin ? t.more.roleAdmin : t.more.roleUser}
+              />
+              {services.map((s) => (
+                <Chip key={s} size="small" label={s} variant="outlined" />
+              ))}
+            </Box>
           </Box>
+          <Button
+            size="small"
+            variant="contained"
+            sx={{ flexShrink: 0 }}
+            onClick={openEdit}
+          >
+            {t.more.editName}
+          </Button>
+        </Box>
+        <Box sx={{ position: "relative", px: 2, pb: 2 }}>
+          <Typography
+            variant="body2"
+            sx={{ color: dark ? "#000000" : "rgba(255,255,255,0.92)" }}
+          >
+            {t.more.activeVehicle}:{" "}
+            {activeVehicle
+              ? `${vehicleTypeLabel(activeVehicle.type, t)} · ${activeVehicle.baseWidth} m`
+              : t.more.noVehicle}
+          </Typography>
         </Box>
       </Card>
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)}>
+        <DialogTitle>{t.more.editName}</DialogTitle>
+        <DialogContent
+          sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
+        >
+          {editError && <Alert severity="error">{editError}</Alert>}
+          <TextField
+            label={t.more.name}
+            value={nameDraft}
+            onChange={(e) => setNameDraft(e.target.value)}
+            fullWidth
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditOpen(false)}>{t.common.close}</Button>
+          <Button
+            variant="contained"
+            disabled={!nameDraft.trim()}
+            onClick={() => void onSaveName()}
+          >
+            {t.common.save}
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
         <Card>
           <List disablePadding>
@@ -177,117 +205,48 @@ export default function MoreScreen() {
               </ListItemIcon>
               <ListItemText primary={t.more.savedRoutes} />
             </ListItemButton>
-          </List>
-        </Card>
-        <Card>
-          <List disablePadding>
-            <ListItem
-              secondaryAction={
-                <Switch
-                  checked={dark}
-                  onChange={(_, on) => setMode(on ? "dark" : "light")}
-                  edge="end"
-                  slotProps={{ input: { "aria-label": t.more.darkMode } }}
-                />
-              }
-            >
-              <ListItemButton
-                onClick={() => setMode(dark ? "light" : "dark")}
-              >
-                <ListItemIcon>
-                  {dark ? <LightModeIcon /> : <DarkModeIcon />}
-                </ListItemIcon>
-                <ListItemText
-                  primary={t.more.appearance}
-                  secondary={t.more.darkMode}
-                />
-              </ListItemButton>
-            </ListItem>
-            <Divider component="li" />
-            <ListItem
-              secondaryAction={
-                <Typography variant="body2" color="text.secondary">
-                  {lang === "en" ? "EN" : "VI"}
-                </Typography>
-              }
-            >
-              <ListItemButton onClick={toggle}>
-                <ListItemIcon>
-                  <TranslateIcon />
-                </ListItemIcon>
-                <ListItemText primary={t.more.language} />
-              </ListItemButton>
-            </ListItem>
-          </List>
-        </Card>
-        <Card>
-          <List disablePadding>
-            <ListItem
-              secondaryAction={
-                <Switch
-                  checked={volunteer}
-                  onChange={(_, on) => void onVolunteer(on)}
-                  edge="end"
-                  slotProps={{ input: { "aria-label": t.more.volunteer } }}
-                />
-              }
-            >
-              <ListItemButton onClick={() => void onVolunteer(!volunteer)}>
-                <ListItemIcon>
-                  <VolunteerIcon color="primary" />
-                </ListItemIcon>
-                <ListItemText
-                  primary={t.more.volunteer}
-                  secondary={
-                    volError ??
-                    (volunteer ? t.more.volunteerOn : t.more.volunteerHint)
-                  }
-                />
-              </ListItemButton>
-            </ListItem>
-            <Divider component="li" />
-            <ListItem
-              secondaryAction={
-                <TextField
-                  select
-                  size="small"
-                  value={capability}
-                  onChange={(e) => {
-                    const next = e.target.value as VolunteerCapability;
-                    setCapability(next);
-                    if (volunteer) {
-                      void onVolunteer(true, next);
-                    }
-                  }}
-                  sx={{ minWidth: 150 }}
-                >
-                  <MenuItem value="SOLO_BIKE">
-                    {t.roles.bikeOnly}
-                  </MenuItem>
-                  <MenuItem value="CAR">{t.roles.carCapable}</MenuItem>
-                </TextField>
-              }
-            >
-              <ListItemText
-                primary={t.roles.volunteer}
-                secondary={t.roles.volunteerHint}
-              />
-            </ListItem>
-            <Divider component="li" />
-            <ListItemButton onClick={() => navigate("/volunteer")}>
-              <ListItemIcon>
-                <VolunteerIcon color="primary" />
-              </ListItemIcon>
-              <ListItemText primary={t.dispatch.radar} />
-            </ListItemButton>
             <Divider component="li" />
             <ListItemButton onClick={() => navigate("/roles")}>
               <ListItemIcon>
-                <VolunteerIcon color="primary" />
+                <WorkspacesIcon color="primary" />
               </ListItemIcon>
               <ListItemText
                 primary={t.more.roles}
                 secondary={t.more.rolesHint}
+              />
+            </ListItemButton>
+            {isAdmin && (
+              <>
+                <Divider component="li" />
+                <ListItemButton onClick={() => navigate("/admin")}>
+                  <ListItemIcon>
+                    <AdminPanelSettingsIcon color="primary" />
+                  </ListItemIcon>
+                  <ListItemText primary={t.admin.title} />
+                </ListItemButton>
+              </>
+            )}
+          </List>
+        </Card>
+        <Card>
+          <List disablePadding>
+            <ListItemButton onClick={() => setMode(dark ? "light" : "dark")}>
+              <ListItemIcon>
+                {dark ? <LightModeIcon /> : <DarkModeIcon />}
+              </ListItemIcon>
+              <ListItemText
+                primary={t.more.appearance}
+                secondary={t.more.darkMode}
+              />
+            </ListItemButton>
+            <Divider component="li" />
+            <ListItemButton onClick={toggle}>
+              <ListItemIcon>
+                <TranslateIcon />
+              </ListItemIcon>
+              <ListItemText
+                primary={t.more.language}
+                secondary={lang === "en" ? "EN" : "VI"}
               />
             </ListItemButton>
           </List>

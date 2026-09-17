@@ -7,6 +7,7 @@ import {
   listSavedPlaces,
   placeKey,
   removeSavedPlace,
+  resolveLabel,
   savePlace,
   searchDirectory,
   type Place,
@@ -277,17 +278,25 @@ export function useRoutePlanner({
         setOriginLabel(null);
         originSearch.pin(formatCoord(next));
         setMode(null);
+        void resolveLabel(p.lat, p.lng, lang).then((label) => {
+          setOriginLabel(label);
+          originSearch.pin(label);
+        });
       } else if (mode === "dest") {
         const next = { lat: p.lat, lng: p.lng };
         setDest(next);
         setDestLabel(null);
         destSearch.pin(formatCoord(next));
         setMode(null);
+        void resolveLabel(p.lat, p.lng, lang).then((label) => {
+          setDestLabel(label);
+          destSearch.pin(label);
+        });
       } else if (mode === "stop" && stops.length < 10) {
         setStops((prev) => [...prev, { lat: p.lat, lng: p.lng }]);
       }
     },
-    [mode, stops.length, originSearch, destSearch],
+    [mode, stops.length, originSearch, destSearch, lang],
   );
 
   function pickOrigin(place: Place | null) {
