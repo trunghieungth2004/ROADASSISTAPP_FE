@@ -111,6 +111,7 @@ export const vi: Strings = {
     deny: "Phản đối",
     remove: "Gỡ",
     confirmedMsg: "Cảm ơn, đã ghi nhận xác nhận.",
+    rerouted: "Cảm ơn, đã ghi nhận xác nhận. Đã cập nhật lộ trình.",
     deniedMsg: "Cảm ơn, đã ghi nhận phản đối.",
     alreadyVoted: "Bạn đã xác nhận báo cáo này.",
     alreadyDenied: "Bạn đã phản đối báo cáo này.",

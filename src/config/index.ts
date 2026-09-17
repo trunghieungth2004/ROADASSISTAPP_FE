@@ -1,7 +1,8 @@
 import appConfig from "./appConfig.json";
 
 export const config = {
-  apiBaseUrl: appConfig.apiBaseUrl || "/api",
+  apiBaseUrl:
+    import.meta.env.VITE_API_BASE_URL || appConfig.apiBaseUrl || "/api",
   firebase: {
     apiKey: appConfig.firebase.apiKey,
     authDomain: appConfig.firebase.authDomain,

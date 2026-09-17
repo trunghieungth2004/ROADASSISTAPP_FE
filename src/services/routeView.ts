@@ -196,12 +196,12 @@ const LIGHT_PILLS: PillColors = {
 };
 
 const DARK_PILLS: PillColors = {
-  activeBg: "#38bdf8",
-  activeText: "#082f49",
-  activeBorder: "#0c4a6e",
-  idleBg: "#1e293b",
+  activeBg: "#0284c7",
+  activeText: "#ffffff",
+  activeBorder: "#ffffff",
+  idleBg: "#334155",
   idleText: "#ffffff",
-  idleBorder: "#94a3b8",
+  idleBorder: "#e2e8f0",
 };
 
 function pillEl(active: boolean, dark: boolean): HTMLDivElement {

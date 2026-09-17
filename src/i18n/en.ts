@@ -110,6 +110,7 @@ export const en = {
     deny: "Deny",
     remove: "Remove",
     confirmedMsg: "Thanks, confirmation recorded.",
+    rerouted: "Thanks, confirmation recorded. Route updated.",
     deniedMsg: "Thanks, denial recorded.",
     alreadyVoted: "You've already confirmed this report.",
     alreadyDenied: "You've already denied this report.",

@@ -164,6 +164,7 @@ export default function RouteScreen() {
     if (!token) {
       return;
     }
+    const prevStatus = selected?.id === flagId ? selected.status : null;
     setFlagBusy(true);
     try {
       const res = await confirmFlag(flagId, token);
@@ -171,7 +172,15 @@ export default function RouteScreen() {
       setVotedIds((prev) => new Set(prev).add(flagId));
       setSelected(null);
       setFlagsKey((k) => k + 1);
-      setSnack(res.alreadyVoted ? t.flag.alreadyVoted : t.flag.confirmedMsg);
+      const flipped = prevStatus === "1" && res.status === "2";
+      if (flipped && planner.result && !planner.busy) {
+        planner.reroute();
+        setSnack(t.flag.rerouted);
+      } else {
+        setSnack(
+          res.alreadyVoted ? t.flag.alreadyVoted : t.flag.confirmedMsg,
+        );
+      }
     } catch (err) {
       const f = err as ApiFailure;
       setSnack(f.message);
