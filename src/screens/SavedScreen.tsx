@@ -5,13 +5,13 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
-import Container from "@mui/material/Container";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import Screen from "../components/ui/Screen";
 import { toMessage } from "../api/client";
 import {
   deleteSavedRoute,
@@ -88,7 +88,7 @@ export default function SavedScreen() {
   }
 
   return (
-    <Container maxWidth="sm" sx={{ py: 2, overflowY: "auto", height: "100%" }}>
+    <Screen maxWidth="sm">
       <Typography variant="h6">{t.saved.title}</Typography>
       {error && (
         <Alert severity="error" sx={{ mt: 1 }}>
@@ -176,6 +176,6 @@ export default function SavedScreen() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Container>
+    </Screen>
   );
 }

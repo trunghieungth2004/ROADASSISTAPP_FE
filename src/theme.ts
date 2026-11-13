@@ -23,6 +23,17 @@ export const theme = createTheme({
           default: "#f5f7f5",
           paper: "#ffffff",
         },
+        text: {
+          primary: "#111111",
+          secondary: "#737373",
+        },
+        divider: "#e5e5e5",
+        error: {
+          main: "#b91c1c",
+        },
+        success: {
+          main: "#15803d",
+        },
       },
     },
     dark: {
@@ -43,6 +54,17 @@ export const theme = createTheme({
           default: "#121212",
           paper: "#1e1e22",
         },
+        text: {
+          primary: "#ffffff",
+          secondary: "#a3a3a3",
+        },
+        divider: "#404040",
+        error: {
+          main: "#f87171",
+        },
+        success: {
+          main: "#4ade80",
+        },
       },
     },
   },
@@ -57,6 +79,18 @@ export const theme = createTheme({
       "Segoe UI",
       "sans-serif",
     ].join(","),
+    h5: {
+      fontWeight: 700,
+    },
+    h6: {
+      fontWeight: 700,
+    },
+    subtitle1: {
+      fontWeight: 600,
+    },
+    subtitle2: {
+      fontWeight: 600,
+    },
   },
   components: {
     MuiBottomNavigation: {
@@ -71,6 +105,46 @@ export const theme = createTheme({
         anchorBottom: {
           borderTopLeftRadius: 28,
           borderTopRightRadius: 28,
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          backgroundImage: "none",
+          boxShadow: "none",
+          border: "1px solid",
+          borderColor: "var(--mui-palette-divider)",
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: "none",
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: "none",
+          fontWeight: 600,
+        },
+      },
+    },
+    MuiTab: {
+      styleOverrides: {
+        root: {
+          textTransform: "none",
+          fontWeight: 600,
+        },
+      },
+    },
+    MuiBottomNavigationAction: {
+      styleOverrides: {
+        root: {
+          minWidth: 0,
         },
       },
     },

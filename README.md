@@ -12,12 +12,24 @@ npm run dev
 
 The backend emulator stack must be running — dev proxies `/api` to `http://localhost:5001` (rewritten to the `asia-southeast1/api` function, see `vite.config.ts`).
 
+For local development create `.env.local` with:
+
+```bash
+VITE_API_BASE_URL=/api
+VITE_DEV_API_PROXY=https://asia-southeast1-roadassistapp-c2e37.cloudfunctions.net
+```
+
+This is required because `src/config/appConfig.json` contains the production API URL. Calling production directly from `localhost` is blocked by the backend CORS allowlist. The Vite dev/preview proxy makes the request server-side and avoids CORS.
+
+To use the local Firebase Functions emulator instead, set `VITE_DEV_API_PROXY=http://localhost:5001` and start the functions emulator under the default project. Set `VITE_USE_AUTH_EMULATOR=true` only when also running the Auth emulator.
+
 ## Scripts
 
 ```bash
 npm run dev       # vite dev server with HMR
 npm run build     # tsc -b + vite build
 npm run lint      # oxlint, must be clean
+npm test          # vitest: i18n parity, API client, label helpers
 npm run preview   # serve the production build locally
 ```
 
@@ -27,16 +39,24 @@ npm run preview   # serve the production build locally
 
 | Key | Purpose |
 |---|---|
-| `firebase.apiKey` / `authDomain` / `projectId` | Firebase web app credentials (Auth) |
+| `firebase.apiKey` / `authDomain` / `projectId` / `storageBucket` | Firebase web app credentials (Auth + Storage uploads; bucket defaults to `<projectId>.firebasestorage.app`) |
 | `apiBaseUrl` | API prefix (`/api` in dev, via the vite proxy) |
 | `authEmulatorUrl` | Auth emulator URL, used only when `VITE_USE_AUTH_EMULATOR=true` |
 | `maptilerKey` | MapTiler Cloud key (map tiles + geocoding) |
+| `firebase.messagingSenderId` | Firebase Cloud Messaging sender ID |
+| `firebase.appId` | Firebase web app ID |
+| `firebase.messagingVapidKey` | Web Push VAPID public key; can also use `VITE_FIREBASE_VAPID_KEY` |
 
 `.env` (see `.env.example`):
 
 | Var | Purpose |
 |---|---|
 | `VITE_USE_AUTH_EMULATOR` | `true` routes sign-in through the local Auth emulator; unset/`false` uses production Firebase Auth |
+| `VITE_FIREBASE_VAPID_KEY` | Web Push VAPID key for admin browser notifications |
+
+## Admin browser notifications
+
+Admins can enable browser push from `/admin` → Dashboard. `npm run predev` / `npm run prebuild` generates `public/firebase-messaging-sw.js` from `src/config/appConfig.json`. Web Push requires HTTPS, browser notification permission, `messagingSenderId`, `appId`, and a VAPID key configured in Firebase Console.
 
 ## Authentication
 
@@ -51,16 +71,27 @@ Token freshness: the context subscribes with `onIdTokenChanged` (not `onAuthStat
 
 | Route | Screen | Purpose |
 |---|---|---|
-| `/` | Home | Entry cards into each flow |
+| `/` | Landing / Home | Public landing page for logged-out visitors; the existing Home entry cards for signed-in users |
+| `/welcome` | Landing | Public landing alias |
 | `/route` | Route planner | A/B place search (Vietnam-filtered MapTiler autocomplete) or map tap, up to 10 stops, vehicle width, up to 3 route alternatives with a selectable chip row (`N · km · min`) and tappable map pills, live hazard/width detours, save plan |
-| `/hazards` | Nearby hazards + my reports | Browse nearby flags, confirm, retract own reports |
+| `/hazards` | Nearby hazards + my reports | Mobile-style nearby/mine tabs, type filters, optional map picker, report sheet, confirm/deny/retract, hazard chat |
 | `/vehicle` | My vehicle | Vehicle profiles, ride setup, tow-vehicle designation |
 | `/saved` | Saved routes | Open, rename, delete, re-route saved plans |
-| `/more` | Settings | Profile card + rename, roles, admin (admins), appearance, language (EN/VI), sign out |
-| `/roles` | Rider onboarding | Skippable role pick (defaults to Rider); redirects to `/vehicle` until a vehicle exists |
-| `/admin` | Admin (role `1` only) | Users (role/status/trust), flag queue + moderation + expiry, alley passability |
+| `/more` | Settings | Mobile-style profile header (points/reports/confirmed), provider/vehicle/bills/warranty/saved/roles rows, appearance, language, notifications, support, diagnostics, admin (admins), sign out |
+| `/providers` | Providers | Manage owned SHOP/TOW/MOBILE_SHOP providers, availability, edit, revoke; search the directory and read reviews |
+| `/bills` | Bills & payments | Rider bills, payee bills, payout account + withdrawals, payout history |
+| `/bills/:ticketId` | Bill detail | Itemized bill, Cash/SePay payment, cash confirmation, ratings and disputes |
+| `/support` | Support | Rider support requests: list tickets, send a new request, read replies |
+| `/diagnostics` | Diagnostics | API reachability and client configuration checks |
+| `/track/:token` | Live tracking | Public read-only request tracker shared from the mobile app (status, helper, ETA) |
+| `/roles` | Rider onboarding | Skippable ride onboarding; optional SHOP, TOW and MOBILE_SHOP registration |
+| `/admin` | Admin (role `1` only) | Left-sidebar console with list-left/detail-right panels: dashboard queue cards + recent audit activity, users (filters, trust, rider license), flags (map + photos + type/status filters), provider requests/reports, payouts (requests + batch history), payments ledger, disputes (both parties, ticket context, chat transcript, confirmed rulings), refunds, financial reports, support, warranty, grouped config with dirty-state save, audit search, payments audit |
 
-Roadside assistance (`/dispatch`) is intentionally **not** in the web app: the Assist tab stays in the bottom nav as a disabled "Soon" entry. Assist, provider requests, and volunteer radar are mobile-first — the backend `/dispatch/*` endpoints remain for the mobile client, but the web client no longer calls them.
+Admin sections use confirm dialogs for money and moderation decisions, required reasons for denials/suspensions, masked bank accounts, and pending-count badges in the sidebar. FE-only beyond the mobile app: route planning, saved routes, bills, warranty claims, provider configuration, support, diagnostics, and the admin console.
+
+Roadside assistance (`/dispatch`) is intentionally **mobile-only**. The Assist tab and `/dispatch` screen show download links for the RoadAssist mobile app on GitHub instead of calling `/dispatch/*` from the web. The mobile app handles SOS, mechanic, walk-in, tow, provider radars and jobs.
+
+Mobile download: <https://github.com/trunghieungth2004/ROADASSISTAPP_MOBILE/releases/latest>
 
 Unauthenticated visits redirect to `/login`; the bottom tab bar appears once signed in.
 

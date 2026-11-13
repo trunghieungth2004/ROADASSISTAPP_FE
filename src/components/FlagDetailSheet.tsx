@@ -18,6 +18,7 @@ type FlagDetailSheetProps = {
   onConfirm: (flagId: string) => void;
   onDeny: (flagId: string) => void;
   onRemove: (flagId: string) => void;
+  onChat?: (flag: Flag) => void;
 };
 
 export default function FlagDetailSheet({
@@ -30,6 +31,7 @@ export default function FlagDetailSheet({
   onConfirm,
   onDeny,
   onRemove,
+  onChat,
 }: FlagDetailSheetProps) {
   const { t } = useStrings();
   return (
@@ -81,6 +83,11 @@ export default function FlagDetailSheet({
                 onClick={() => onDeny(flag.id)}
               >
                 {t.flag.deny}
+              </Button>
+            )}
+            {onChat && (
+              <Button variant="outlined" onClick={() => onChat(flag)}>
+                {t.chat.open}
               </Button>
             )}
             {isOwn && flag.status !== "3" && (

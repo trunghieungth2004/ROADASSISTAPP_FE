@@ -7,9 +7,12 @@ export type MeUser = {
   role: string;
   status?: string | null;
   trustScore?: number;
-  volunteerAvailable?: boolean;
-  volunteerRadiusKm?: number;
-  capability?: string;
+  standingScore?: number;
+  bookingBlocked?: boolean;
+  restrictedUntil?: string | null;
+  restrictionReason?: string | null;
+  conductFlag?: boolean;
+  points?: number;
   ratingAvg?: number;
   ratingCount?: number;
   onboarded?: boolean;
@@ -69,6 +72,13 @@ export type AdminUser = {
   role: string;
   status?: string | null;
   trustScore?: number | null;
+  standingScore?: number | null;
+  bookingBlocked?: boolean | null;
+  restrictedUntil?: string | null;
+  restrictionReason?: string | null;
+  conductFlag?: boolean | null;
+  disputeCount?: number | null;
+  lastDisputeAt?: string | null;
   ratingAvg?: number | null;
   ratingCount?: number | null;
   onboarded?: boolean;
@@ -84,10 +94,11 @@ export function updateUserRole(
   targetUserId: string,
   role: string,
   token: string,
+  note?: string,
 ): Promise<{ updated: number }> {
   return api.put<{ updated: number }>(
     "/users/role",
-    { targetUserId, role },
+    { targetUserId, role, ...(note ? { note } : {}) },
     token,
   );
 }
@@ -108,10 +119,23 @@ export function updateUserStatus(
   targetUserId: string,
   status: string,
   token: string,
+  note?: string,
 ): Promise<{ updated: number }> {
   return api.put<{ updated: number }>(
     "/users/status",
-    { targetUserId, status },
+    { targetUserId, status, ...(note ? { note } : {}) },
+    token,
+  );
+}
+
+export function updateUserServices(
+  targetUserId: string,
+  payload: { grant?: string[]; revoke?: string[] },
+  token: string,
+): Promise<{ updated: number; services: string[] }> {
+  return api.put<{ updated: number; services: string[] }>(
+    "/users/services",
+    { targetUserId, ...payload },
     token,
   );
 }

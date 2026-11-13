@@ -9,6 +9,7 @@ import {
 import { onIdTokenChanged, signOut as firebaseSignOut } from "firebase/auth";
 import { auth } from "../auth/firebase";
 import { UNAUTHORIZED_EVENT, setTokenRefresher } from "../api/client";
+import { loadStatuses } from "../api/meta";
 
 type Session = {
   uid: string;
@@ -55,6 +56,12 @@ function readSession(): Session | null {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(readSession);
+
+  useEffect(() => {
+    if (session?.token) {
+      void loadStatuses(session.token);
+    }
+  }, [session?.token]);
 
   const signIn = useCallback((nextUid: string, nextToken: string) => {
     const next = { uid: nextUid, token: nextToken };

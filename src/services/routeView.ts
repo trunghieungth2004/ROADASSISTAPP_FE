@@ -85,6 +85,8 @@ function drawRoutesInner(
   if (routes[selected]) {
     order.push(selected);
   }
+  const styleLayers = map.getStyle()?.layers ?? [];
+  const firstLabel = styleLayers.find((l) => l.type === "symbol")?.id;
   const bounds = new maptilersdk.LngLatBounds();
   for (const i of order) {
     const route = routes[i];
@@ -105,7 +107,7 @@ function drawRoutesInner(
         "line-width": active ? 6 : 3,
         "line-opacity": active ? 0.95 : 0.75,
       },
-    });
+    }, firstLabel);
     for (const [lng, lat] of route.geometry.coordinates) {
       bounds.extend([lng, lat]);
     }

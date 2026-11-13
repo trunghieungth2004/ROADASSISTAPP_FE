@@ -4,20 +4,22 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
-import Container from "@mui/material/Container";
+import Chip from "@mui/material/Chip";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import Fab from "@mui/material/Fab";
+import Divider from "@mui/material/Divider";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import AddIcon from "@mui/icons-material/Add";
+import TwoWheelerIcon from "@mui/icons-material/TwoWheeler";
 import { toMessage } from "../api/client";
 import {
   addRideConfig,
   createProfile,
   listProfiles,
+  removeProfile,
   setTowVehicle,
   VEHICLE_DEFAULT_WIDTH,
   type ConfigType,
@@ -25,6 +27,7 @@ import {
   type VehicleProfile,
   type VehicleType,
 } from "../api/vehicles";
+import Screen from "../components/ui/Screen";
 import { useAuth } from "../context/AuthContext";
 import { useProfile } from "../context/ProfileContext";
 import { useStrings } from "../context/LanguageContext";
@@ -51,6 +54,7 @@ export default function VehicleScreen() {
   const [estWidth, setEstWidth] = useState("0.9");
   const [estHeight, setEstHeight] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const [vehicleBusy, setVehicleBusy] = useState(false);
 
   function onTypeChange(next: VehicleType) {
     setType(next);
@@ -58,29 +62,52 @@ export default function VehicleScreen() {
     setBaseHeight(next === "CAR" ? "1.5" : "1.1");
   }
 
-  async function onUseProfile(p: VehicleProfile) {
+  async function activateProfile(profile: VehicleProfile) {
+    if (vehicleBusy) return;
     setError(null);
+    setVehicleBusy(true);
     try {
-      await activateVehicle(p.id);
+      await activateVehicle(profile.id);
+      await refresh();
       setNotice(t.vehicle.activeSaved);
     } catch (err) {
       setError(toMessage(err));
+    } finally {
+      setVehicleBusy(false);
     }
   }
 
-  async function onSetTow(p: VehicleProfile, next: TowVehicleType | null) {
-    if (!token) {
-      return;
-    }
+  async function onRemove(profile: VehicleProfile) {
+    if (!token || vehicleBusy || !window.confirm(t.vehicle.removeConfirm)) return;
     setError(null);
     setNotice(null);
+    setVehicleBusy(true);
     try {
-      await setTowVehicle(p.id, next, token);
+      await removeProfile(profile.id, token);
+      await reload(token);
+      await refresh();
+      setNotice(t.vehicle.removed);
+    } catch (err) {
+      setError(toMessage(err));
+    } finally {
+      setVehicleBusy(false);
+    }
+  }
+
+  async function onSetTow(profile: VehicleProfile, next: TowVehicleType | null) {
+    if (!token || vehicleBusy) return;
+    setError(null);
+    setNotice(null);
+    setVehicleBusy(true);
+    try {
+      await setTowVehicle(profile.id, next, token);
       await reload(token);
       await refresh();
       setNotice(t.vehicle.towSaved);
     } catch (err) {
       setError(toMessage(err));
+    } finally {
+      setVehicleBusy(false);
     }
   }
 
@@ -101,18 +128,15 @@ export default function VehicleScreen() {
   }
 
   useEffect(() => {
-    if (token) {
-      void reload(token);
-    }
+    if (token) void reload(token);
   }, [token]);
 
   async function onCreate(e: FormEvent) {
     e.preventDefault();
-    if (!token) {
-      return;
-    }
+    if (!token || vehicleBusy) return;
     setError(null);
     setNotice(null);
+    setVehicleBusy(true);
     try {
       await createProfile(
         {
@@ -127,16 +151,17 @@ export default function VehicleScreen() {
       setCreateOpen(false);
     } catch (err) {
       setError(toMessage(err));
+    } finally {
+      setVehicleBusy(false);
     }
   }
 
   async function onRideConfig(e: FormEvent) {
     e.preventDefault();
-    if (!token || !profileId) {
-      return;
-    }
+    if (!token || !profileId || vehicleBusy) return;
     setError(null);
     setNotice(null);
+    setVehicleBusy(true);
     try {
       await addRideConfig(
         {
@@ -150,116 +175,163 @@ export default function VehicleScreen() {
       setNotice(t.vehicle.rideSaved);
     } catch (err) {
       setError(toMessage(err));
+    } finally {
+      setVehicleBusy(false);
     }
   }
 
   return (
-    <Container maxWidth="sm" sx={{ py: 2, overflowY: "auto", height: "100%" }}>
-      <Typography variant="h6">{t.vehicle.title}</Typography>
-      {loading && (
+    <Screen>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <Typography variant="h6" sx={{ flexGrow: 1 }}>
+          {t.vehicle.title}
+        </Typography>
+        <Button
+          size="small"
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => setCreateOpen(true)}
+        >
+          {t.vehicle.create}
+        </Button>
+      </Box>
+      {loading ? (
         <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
           {t.common.loading}
         </Typography>
-      )}
-      {error && (
-        <Alert severity="error" sx={{ mt: 2 }}>
-          {error}
-        </Alert>
-      )}
-      {notice && (
-        <Alert severity="success" sx={{ mt: 2 }}>
-          {notice}
-        </Alert>
-      )}
-      {!loading && !error && (
+      ) : null}
+      {error ? <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert> : null}
+      {notice ? <Alert severity="success" sx={{ mt: 2 }}>{notice}</Alert> : null}
+      {!loading ? (
         <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
-          <Fab
-            color="primary"
-            aria-label={t.vehicle.create}
-            sx={{ position: "fixed", bottom: 72, right: 16 }}
-            onClick={() => setCreateOpen(true)}
-          >
-            <AddIcon />
-          </Fab>
           <Card>
-            <CardContent>
-              <Typography variant="subtitle1">{t.vehicle.profiles}</Typography>
-              {profiles.length === 0 && (
-                <Alert severity="info" sx={{ mt: 1 }}>
-                  {t.vehicle.onboarding}
-                </Alert>
-              )}
-              {profiles.map((p) => (
-                <Box
-                  key={p.id}
-                  sx={{
-                    mt: 1,
-                    bgcolor: "action.hover",
-                    borderRadius: 2,
-                    px: 1.5,
-                    py: 1,
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 1,
-                    }}
-                  >
-                    <Box>
-                      <Typography variant="body2">
-                        {vehicleTypeLabel(p.type, t)}
-                        {activeVehicle?.id === p.id &&
-                          ` · ${t.vehicle.active}`}
-                        {p.towVehicleType &&
-                          ` · ${t.vehicle.towVehicle}: ${p.towVehicleType}`}
+            <CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
+              <Typography variant="subtitle2" sx={{ px: 2, pt: 2 }}>
+                {t.vehicle.profiles}
+              </Typography>
+              {profiles.length === 0 ? (
+                <Box sx={{ px: 2, pb: 2, mt: 1 }}>
+                  <Alert severity="info">{t.vehicle.onboarding}</Alert>
+                </Box>
+              ) : null}
+              {profiles.map((profile, index) => (
+                <Box key={profile.id}>
+                  {index > 0 || profiles.length > 0 ? <Divider sx={{ mt: 1 }} /> : null}
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 2, py: 1.5 }}>
+                    <TwoWheelerIcon sx={{ color: "primary.main" }} />
+                    <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                      <Typography sx={{ fontSize: 15, fontWeight: 500 }}>
+                        {vehicleTypeLabel(profile.type, t)}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {t.vehicle.width}: {p.baseWidth} m
+                      <Typography variant="caption" color="text.secondary">
+                        {`${t.vehicle.width}: ${profile.baseWidth} m`}
+                        {profile.towVehicleType
+                          ? ` · ${t.vehicle.towVehicle}: ${profile.towVehicleType}`
+                          : ""}
                       </Typography>
                     </Box>
+                    {activeVehicle?.id === profile.id ? (
+                      <Chip size="small" color="primary" label={t.vehicle.active} />
+                    ) : (
+                      <Button size="small" disabled={vehicleBusy} onClick={() => void activateProfile(profile)}>
+                        {t.vehicle.useForRoute}
+                      </Button>
+                    )}
                     <Button
                       size="small"
-                      disabled={activeVehicle?.id === p.id}
-                      onClick={() => void onUseProfile(p)}
+                      color="error"
+                      disabled={vehicleBusy}
+                      onClick={() => void onRemove(profile)}
                     >
-                      {t.vehicle.useForRoute}
+                      {t.vehicle.remove}
                     </Button>
                   </Box>
-                  {TOWABLE.has(p.type) && (
+                  {TOWABLE.has(profile.type) ? (
                     <TextField
                       select
                       size="small"
                       label={t.vehicle.towVehicle}
-                      value={p.towVehicleType ?? ""}
+                      value={profile.towVehicleType ?? ""}
                       onChange={(e) =>
-                        void onSetTow(
-                          p,
-                          (e.target.value as TowVehicleType) || null,
-                        )
+                        void onSetTow(profile, (e.target.value as TowVehicleType) || null)
                       }
+                      disabled={vehicleBusy}
                       fullWidth
-                      sx={{ mt: 1 }}
+                      sx={{ px: 2, pb: 2, "& .MuiInputBase-root": { mx: 0 } }}
                     >
                       <MenuItem value="">{t.vehicle.towNone}</MenuItem>
-                      {TOW_TYPES.map((v) => (
-                        <MenuItem key={v} value={v}>
-                          {v}
+                      {TOW_TYPES.map((value) => (
+                        <MenuItem key={value} value={value}>
+                          {value}
                         </MenuItem>
                       ))}
                     </TextField>
-                  )}
+                  ) : null}
                 </Box>
               ))}
             </CardContent>
           </Card>
-          <Dialog open={createOpen} onClose={() => setCreateOpen(false)}>
+          {profiles.length > 0 ? (
+            <Card>
+              <CardContent>
+                <Typography variant="subtitle1">{t.vehicle.rideSetup}</Typography>
+                <Box
+                  component="form"
+                  onSubmit={onRideConfig}
+                  sx={{ mt: 1, display: "flex", flexDirection: "column", gap: 2 }}
+                >
+                  <TextField
+                    select
+                    label={t.vehicle.profiles}
+                    value={profileId}
+                    onChange={(e) => setProfileId(e.target.value)}
+                    fullWidth
+                  >
+                    {profiles.map((profile) => (
+                      <MenuItem key={profile.id} value={profile.id}>
+                        {vehicleTypeLabel(profile.type, t)} · {profile.baseWidth} m
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  <TextField
+                    select
+                    label={t.vehicle.load}
+                    value={configType}
+                    onChange={(e) => setConfigType(e.target.value as ConfigType)}
+                    fullWidth
+                  >
+                    {CONFIGS.map((value) => (
+                      <MenuItem key={value} value={value}>
+                        {configTypeLabel(value, t)}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  <TextField
+                    label={t.vehicle.estWidth}
+                    type="number"
+                    slotProps={{ htmlInput: { step: "0.05", min: "0.1" } }}
+                    value={estWidth}
+                    onChange={(e) => setEstWidth(e.target.value)}
+                    fullWidth
+                  />
+                  <TextField
+                    label={t.vehicle.estHeight}
+                    type="number"
+                    slotProps={{ htmlInput: { step: "0.05", min: "0.1" } }}
+                    value={estHeight}
+                    onChange={(e) => setEstHeight(e.target.value)}
+                    fullWidth
+                  />
+                  <Button type="submit" variant="contained" disabled={vehicleBusy}>
+                    {t.vehicle.apply}
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
+          ) : null}
+          <Dialog open={createOpen} onClose={() => setCreateOpen(false)} fullWidth maxWidth="xs">
             <DialogTitle>{t.vehicle.create}</DialogTitle>
-            <DialogContent
-              sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
-            >
+            <DialogContent>
               <Box
                 component="form"
                 onSubmit={onCreate}
@@ -272,9 +344,9 @@ export default function VehicleScreen() {
                   onChange={(e) => onTypeChange(e.target.value as VehicleType)}
                   fullWidth
                 >
-                  {TYPES.map((v) => (
-                    <MenuItem key={v} value={v}>
-                      {vehicleTypeLabel(v, t)}
+                  {TYPES.map((value) => (
+                    <MenuItem key={value} value={value}>
+                      {vehicleTypeLabel(value, t)}
                     </MenuItem>
                   ))}
                 </TextField>
@@ -296,79 +368,14 @@ export default function VehicleScreen() {
                   onChange={(e) => setBaseHeight(e.target.value)}
                   fullWidth
                 />
-                <Button type="submit" variant="contained">
+                <Button type="submit" variant="contained" disabled={vehicleBusy}>
                   {t.common.save}
                 </Button>
               </Box>
             </DialogContent>
           </Dialog>
-          {profiles.length > 0 && (
-            <Card>
-              <CardContent>
-                <Typography variant="subtitle1">
-                  {t.vehicle.rideSetup}
-                </Typography>
-                <Box
-                  component="form"
-                  onSubmit={onRideConfig}
-                  sx={{
-                    mt: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 2,
-                  }}
-                >
-                  <TextField
-                    select
-                    label={t.vehicle.profiles}
-                    value={profileId}
-                    onChange={(e) => setProfileId(e.target.value)}
-                    fullWidth
-                  >
-                    {profiles.map((p) => (
-                      <MenuItem key={p.id} value={p.id}>
-                        {vehicleTypeLabel(p.type, t)} · {p.baseWidth} m
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                  <TextField
-                    select
-                    label={t.vehicle.load}
-                    value={configType}
-                    onChange={(e) => setConfigType(e.target.value as ConfigType)}
-                    fullWidth
-                  >
-                    {CONFIGS.map((c) => (
-                      <MenuItem key={c} value={c}>
-                        {configTypeLabel(c, t)}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                  <TextField
-                    label={t.vehicle.estWidth}
-                    type="number"
-                    slotProps={{ htmlInput: { step: "0.05", min: "0.1" } }}
-                    value={estWidth}
-                    onChange={(e) => setEstWidth(e.target.value)}
-                    fullWidth
-                  />
-                  <TextField
-                    label={t.vehicle.estHeight}
-                    type="number"
-                    slotProps={{ htmlInput: { step: "0.05", min: "0.1" } }}
-                    value={estHeight}
-                    onChange={(e) => setEstHeight(e.target.value)}
-                    fullWidth
-                  />
-                  <Button type="submit" variant="contained">
-                    {t.vehicle.apply}
-                  </Button>
-                </Box>
-              </CardContent>
-            </Card>
-          )}
         </Box>
-      )}
-    </Container>
+      ) : null}
+    </Screen>
   );
 }

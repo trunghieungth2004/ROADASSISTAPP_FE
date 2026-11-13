@@ -4,6 +4,8 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
 import Container from "@mui/material/Container";
 import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
@@ -15,7 +17,6 @@ import { toMessage } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { useProfile } from "../context/ProfileContext";
 import { useStrings } from "../context/LanguageContext";
-import { brandTileUrl } from "../map/style";
 
 export default function LoginScreen() {
   const { t } = useStrings();
@@ -44,10 +45,12 @@ export default function LoginScreen() {
         });
       }
       const cred = await signInWithEmailAndPassword(auth, email, password);
-      const token = await cred.user.getIdToken();
-      signIn(cred.user.uid, token);
+      const nextToken = await cred.user.getIdToken();
+      signIn(cred.user.uid, nextToken);
       const next = await refresh();
-      if (!next || next.user.onboarded === true) {
+      if (next?.user.role === "1") {
+        navigate("/admin");
+      } else if (!next || next.user.onboarded === true) {
         navigate("/");
       } else {
         navigate("/roles");
@@ -60,160 +63,88 @@ export default function LoginScreen() {
   }
 
   return (
-    <Box sx={{ height: "100%", display: "flex" }}>
-      <Box
-        sx={{
-          display: { xs: "none", md: "block" },
-          position: "relative",
-          overflow: "hidden",
-          flex: "1 1 55%",
-        }}
-      >
-        <Box
-          aria-hidden
-          sx={{
-            position: "absolute",
-            inset: "-10%",
-            backgroundImage: `url("${brandTileUrl()}")`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            filter: "blur(14px)",
-            transform: "scale(1.2)",
-          }}
-        />
-        <Box
-          aria-hidden
-          sx={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "linear-gradient(160deg, rgba(2,132,199,0.62), rgba(2,132,199,0.05) 75%)",
-          }}
-        />
-        <Box
-          sx={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            p: 5,
-            pointerEvents: "none",
-          }}
-        >
-          <Box>
-            <Typography variant="h4" component="h1" color="#ffffff">
-              {t.appName}
-            </Typography>
-            <Typography sx={{ color: "rgba(255,255,255,0.92)", mt: 1 }}>
-              {t.home.subtitle}
-            </Typography>
-          </Box>
-          <svg
-            viewBox="0 0 220 140"
-            width="260"
-            height="165"
-            aria-hidden
-            style={{ alignSelf: "flex-start" }}
-          >
-            <path
-              d="M12 126 C 56 122, 62 80, 96 80 S 168 44, 200 22"
-              fill="none"
-              stroke="rgba(255,255,255,0.85)"
-              strokeWidth="5"
-              strokeLinecap="round"
-              strokeDasharray="1 14"
-            />
-            <circle
-              cx="200"
-              cy="22"
-              r="12"
-              fill="#fbbf24"
-              stroke="#ffffff"
-              strokeWidth="3"
-            />
-            <circle cx="200" cy="22" r="4.5" fill="#451a03" />
-          </svg>
-        </Box>
-      </Box>
-      <Box
-        sx={{
-          flex: "1 1 45%",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          px: { xs: 3, md: 6 },
-          py: 3,
-        }}
-      >
-        <Container maxWidth="xs" disableGutters>
-          <Typography
-            variant="h5"
-            component="h1"
-            color="primary"
-            sx={{ display: { md: "none" } }}
-          >
+    <Box
+      sx={{
+        height: "100%",
+        overflowY: "auto",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        px: 2,
+        py: 4,
+      }}
+    >
+      <Container maxWidth="xs" disableGutters>
+        <Box sx={{ textAlign: "center", mb: 3 }}>
+          <Typography variant="h4" component="h1" color="primary">
             {t.appName}
           </Typography>
-          <Tabs
-            value={mode}
-            onChange={(_, v: "login" | "register") => setMode(v)}
-            sx={{ mt: { xs: 1, md: 0 } }}
-          >
-            <Tab value="login" label={t.auth.signIn} />
-            <Tab value="register" label={t.auth.createAccount} />
-          </Tabs>
-          <Box
-            component="form"
-            onSubmit={onSubmit}
-            sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2 }}
-          >
-            {mode === "register" && (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            {t.home.subtitle}
+          </Typography>
+        </Box>
+        <Card>
+          <CardContent sx={{ p: 2 }}>
+            <Tabs
+              value={mode}
+              onChange={(_, value: "login" | "register") => setMode(value)}
+              variant="fullWidth"
+            >
+              <Tab value="login" label={t.auth.signIn} />
+              <Tab value="register" label={t.auth.createAccount} />
+            </Tabs>
+            <Box
+              component="form"
+              onSubmit={onSubmit}
+              sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2 }}
+            >
+              {mode === "register" ? (
+                <TextField
+                  label={t.auth.displayName}
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  autoComplete="name"
+                  fullWidth
+                />
+              ) : null}
+              {mode === "register" ? (
+                <TextField
+                  label={t.auth.phone}
+                  type="tel"
+                  required
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  autoComplete="tel"
+                  fullWidth
+                />
+              ) : null}
               <TextField
-                label={t.auth.displayName}
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                autoComplete="name"
-                fullWidth
-              />
-            )}
-            {mode === "register" && (
-              <TextField
-                label={t.auth.phone}
-                type="tel"
+                label={t.auth.email}
+                type="email"
                 required
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                autoComplete="tel"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
                 fullWidth
               />
-            )}
-            <TextField
-              label={t.auth.email}
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              fullWidth
-            />
-            <TextField
-              label={t.auth.password}
-              type="password"
-              required
-              slotProps={{ htmlInput: { minLength: 6 } }}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
-              fullWidth
-            />
-            {error && <Alert severity="error">{error}</Alert>}
-            <Button type="submit" variant="contained" disabled={busy} fullWidth>
-              {mode === "login" ? t.auth.signIn : t.auth.createAccount}
-            </Button>
-          </Box>
-        </Container>
-      </Box>
+              <TextField
+                label={t.auth.password}
+                type="password"
+                required
+                slotProps={{ htmlInput: { minLength: 6 } }}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
+                fullWidth
+              />
+              {error ? <Alert severity="error">{error}</Alert> : null}
+              <Button type="submit" variant="contained" disabled={busy} fullWidth>
+                {mode === "login" ? t.auth.signIn : t.auth.createAccount}
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+      </Container>
     </Box>
   );
 }

@@ -12,6 +12,7 @@ export type Flag = {
   status: string;
   voteCount?: number;
   reporterId?: string;
+  photoUrls?: string[];
 };
 
 export type SubmitFlagPayload = {
@@ -20,6 +21,8 @@ export type SubmitFlagPayload = {
   lng: number;
   note?: string;
   radiusMeters?: number;
+  photoUrls?: string[];
+  ttlMinutes?: number;
 };
 
 export function submitFlag(

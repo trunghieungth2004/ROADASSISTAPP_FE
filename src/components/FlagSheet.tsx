@@ -7,16 +7,19 @@ import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
+import Alert from "@mui/material/Alert";
 import CarCrashIcon from "@mui/icons-material/CarCrash";
 import FloodIcon from "@mui/icons-material/Flood";
 import WarningIcon from "@mui/icons-material/Warning";
 import { useStrings } from "../context/LanguageContext";
 import type { FlagType } from "../api/flags";
+import { uploadImages } from "../storage/uploads";
 
 export type FlagReport = {
   type: FlagType;
   radiusMeters: number;
   note?: string;
+  photoUrls?: string[];
 };
 
 type FlagSheetProps = {
@@ -24,6 +27,7 @@ type FlagSheetProps = {
   lat: number;
   lng: number;
   busy: boolean;
+  uid: string;
   onClose: () => void;
   onSubmit: (report: FlagReport) => void;
 };
@@ -33,6 +37,7 @@ export default function FlagSheet({
   lat,
   lng,
   busy,
+  uid,
   onClose,
   onSubmit,
 }: FlagSheetProps) {
@@ -40,14 +45,19 @@ export default function FlagSheet({
   const [type, setType] = useState<FlagType>("FLOOD");
   const [radius, setRadius] = useState(200);
   const [note, setNote] = useState("");
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
       setType("FLOOD");
       setRadius(200);
       setNote("");
+      setPhotoFiles([]);
+      setError(null);
     }
-  }, [open ]);
+  }, [open]);
 
   return (
     <SwipeableDrawer
@@ -109,14 +119,25 @@ export default function FlagSheet({
           rows={2}
           sx={{ mt: 1 }}
         />
+        <Button component="label" variant="outlined" fullWidth sx={{ mt: 1 }}>
+          {t.flag.photos}
+          <input hidden type="file" accept="image/*" multiple onChange={(e) => setPhotoFiles(Array.from(e.target.files ?? []).slice(0, 5))} />
+        </Button>
+        {photoFiles.length > 0 && <Typography variant="caption">{photoFiles.length} {t.flag.photosSelected}</Typography>}
+        {error && <Alert severity="error" sx={{ mt: 1 }}>{error}</Alert>}
         <Button
           variant="contained"
           fullWidth
-          disabled={busy}
+          disabled={busy || uploading}
           sx={{ mt: 2 }}
-          onClick={() =>
-            onSubmit({ type, radiusMeters: radius, note: note || undefined })
-          }
+          onClick={() => {
+            setUploading(true);
+            setError(null);
+            void uploadImages(photoFiles, `flags/${uid}`)
+              .then((photoUrls) => onSubmit({ type, radiusMeters: radius, note: note || undefined, ...(photoUrls.length ? { photoUrls } : {}) }))
+              .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)))
+              .finally(() => setUploading(false));
+          }}
         >
           {t.flag.submit}
         </Button>

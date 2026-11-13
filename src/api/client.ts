@@ -30,20 +30,70 @@ function notifyUnauthorized(): void {
   window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT));
 }
 
+function networkFailure(): ApiFailure {
+  return {
+    statusCode: 0,
+    message:
+      "Can't reach the RoadAssist API. Check your connection or the dev proxy.",
+  };
+}
+
+function failedResponse(res: Response, body: Partial<ApiFailure>): ApiFailure {
+  if (res.status === 502) {
+    return {
+      statusCode: 502,
+      message: "The dev proxy could not reach the API.",
+    };
+  }
+  return {
+    statusCode: body.statusCode ?? res.status,
+    message: body.message ?? `Request failed (HTTP ${res.status}).`,
+    errors: body.errors,
+  };
+}
+
 async function call<T>(
   path: string,
   init: RequestInit,
   token?: string | null,
 ): Promise<T> {
-  let res = await send(path, init, token);
-  if (res.status === 401 && tokenRefresher) {
-    const fresh = await tokenRefresher().catch(() => null);
-    if (fresh) {
-      res = await send(path, init, fresh);
+  let res: Response;
+  try {
+    res = await send(path, init, token);
+    if (res.status === 401 && tokenRefresher) {
+      const fresh = await tokenRefresher().catch(() => null);
+      if (fresh) {
+        res = await send(path, init, fresh);
+      }
+    }
+  } catch {
+    throw networkFailure();
+  }
+
+  let raw = "";
+  try {
+    raw = await res.text();
+  } catch {
+    throw networkFailure();
+  }
+
+  let body: Partial<ApiEnvelope<T>> & Partial<ApiFailure> = {};
+  if (raw.trim() !== "") {
+    try {
+      body = JSON.parse(raw) as Partial<ApiEnvelope<T>> & Partial<ApiFailure>;
+    } catch {
+      throw {
+        statusCode: res.status,
+        message:
+          res.status === 502
+            ? "The dev proxy could not reach the API."
+            : res.ok
+              ? "The server returned an invalid response."
+              : `Request failed (HTTP ${res.status}).`,
+      } satisfies ApiFailure;
     }
   }
-  const body = (await res.json()) as Partial<ApiEnvelope<T>> &
-    Partial<ApiFailure>;
+
   if (!res.ok) {
     if (
       res.status === 401 ||
@@ -52,11 +102,7 @@ async function call<T>(
     ) {
       notifyUnauthorized();
     }
-    throw {
-      statusCode: body.statusCode ?? res.status,
-      message: body.message ?? "Request failed",
-      errors: body.errors,
-    } satisfies ApiFailure;
+    throw failedResponse(res, body);
   }
   return body.data as T;
 }

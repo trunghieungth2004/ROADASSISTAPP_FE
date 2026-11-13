@@ -34,6 +34,7 @@ import {
 import { saveRoute, type LatLng } from "../api/routes";
 import { type Place } from "../api/places";
 import FlagDetailSheet from "../components/FlagDetailSheet";
+import ChatDialog from "../components/ChatDialog";
 import FlagSheet, { type FlagReport } from "../components/FlagSheet";
 import MapView, { type MapClick } from "../components/MapView";
 import NearbyFlags from "../components/NearbyFlags";
@@ -42,8 +43,9 @@ import SavedRoutesSheet from "../components/SavedRoutesSheet";
 import { useAuth } from "../context/AuthContext";
 import { useProfile } from "../context/ProfileContext";
 import { useStrings } from "../context/LanguageContext";
-import { vehicleTypeLabel } from "../i18n/labels";
+import { flagTypeLabel, vehicleTypeLabel } from "../i18n/labels";
 import { useRoutePlanner } from "../hooks/useRoutePlanner";
+import { MOBILE_RELEASES_URL } from "../config/mobileLinks";
 import { drawRoutePills } from "../services/routeView";
 import { hasDenied, hasVoted, markDenied, markVoted } from "../storage/votedFlags";
 
@@ -64,6 +66,7 @@ export default function RouteScreen() {
   const [flagPoint, setFlagPoint] = useState<LatLng | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [flagBusy, setFlagBusy] = useState(false);
+  const [chatFlag, setChatFlag] = useState<Flag | null>(null);
   const [selected, setSelected] = useState<Flag | null>(null);
   const [votedIds, setVotedIds] = useState<Set<string>>(new Set());
   const [deniedIds, setDeniedIds] = useState<Set<string>>(new Set());
@@ -145,6 +148,7 @@ export default function RouteScreen() {
           lng: flagPoint.lng,
           note: report.note,
           radiusMeters: report.radiusMeters,
+          ...(report.photoUrls && report.photoUrls.length > 0 ? { photoUrls: report.photoUrls } : {}),
         },
         token,
       );
@@ -334,6 +338,27 @@ export default function RouteScreen() {
         </Fab>
         <Card sx={{ width: "100%", maxHeight: "55dvh", overflowY: "auto" }}>
         <CardContent sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+          <Alert
+            severity="info"
+            action={(
+              <Button
+                color="inherit"
+                size="small"
+                href={MOBILE_RELEASES_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t.route.navigationMobileCta}
+              </Button>
+            )}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+              {t.route.navigationMobileTitle}
+            </Typography>
+            <Typography variant="caption">
+              {t.route.navigationMobileBody}
+            </Typography>
+          </Alert>
           <Box sx={{ display: "flex", gap: 1 }}>
             <Box
               sx={{
@@ -623,6 +648,7 @@ export default function RouteScreen() {
           lat={flagPoint.lat}
           lng={flagPoint.lng}
           busy={flagBusy}
+          uid={uid ?? ""}
           onClose={() => {
             setSheetOpen(false);
             setMode(null);
@@ -646,7 +672,16 @@ export default function RouteScreen() {
         onConfirm={onConfirmFlag}
         onDeny={onDenyFlag}
         onRemove={onRemoveFlag}
+        onChat={(flag) => setChatFlag(flag)}
       />
+      {chatFlag && (
+        <ChatDialog
+          scope="HAZARD"
+          refId={chatFlag.id}
+          title={flagTypeLabel(chatFlag.type, t)}
+          onClose={() => setChatFlag(null)}
+        />
+      )}
       <SavedRoutesSheet
         open={savedOpen}
         token={token}

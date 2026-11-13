@@ -7,19 +7,19 @@ import Card from "@mui/material/Card";
 import CardActionArea from "@mui/material/CardActionArea";
 import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
-import Container from "@mui/material/Container";
-import Grid from "@mui/material/Grid";
-import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
-import ListItemText from "@mui/material/ListItemText";
 import Typography from "@mui/material/Typography";
 import AddAlertIcon from "@mui/icons-material/AddAlert";
+import BuildIcon from "@mui/icons-material/Build";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import RouteIcon from "@mui/icons-material/Route";
 import TwoWheelerIcon from "@mui/icons-material/TwoWheeler";
 import { flagsNear, type Flag } from "../api/flags";
-import { flagStatusLabel } from "../components/flagStatus";
+import { MOBILE_RELEASES_URL } from "../components/AssistCtaDialog";
+import { flagStatusColor, flagStatusLabel } from "../components/flagStatus";
+import Screen from "../components/ui/Screen";
 import { useAuth } from "../context/AuthContext";
+import { useProfile } from "../context/ProfileContext";
 import { useStrings } from "../context/LanguageContext";
 import { flagTypeLabel } from "../i18n/labels";
 import { mapDefaults } from "../map/style";
@@ -27,15 +27,27 @@ import { mapDefaults } from "../map/style";
 export default function HomeScreen() {
   const { t } = useStrings();
   const { token } = useAuth();
+  const { user } = useProfile();
   const navigate = useNavigate();
   const [nearby, setNearby] = useState<Flag[]>([]);
+  const [point, setPoint] = useState({
+    lat: mapDefaults.center[1],
+    lng: mapDefaults.center[0],
+  });
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token) {
-      return;
-    }
-    flagsNear(mapDefaults.center[1], mapDefaults.center[0], 3000, token)
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setPoint({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => undefined,
+      { timeout: 5000 },
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!token) return;
+    flagsNear(point.lat, point.lng, 3000, token)
       .then((flags) => setNearby(flags.slice(0, 5)))
       .catch((err: unknown) =>
         setError(
@@ -44,7 +56,7 @@ export default function HomeScreen() {
             : "Request failed",
         ),
       );
-  }, [token]);
+  }, [token, point]);
 
   const actions = [
     {
@@ -77,36 +89,70 @@ export default function HomeScreen() {
     },
   ];
 
+  const displayName = user?.displayName || user?.email || "";
+
   return (
-    <Container maxWidth="sm" sx={{ py: 2, overflowY: "auto", height: "100%" }}>
-      <Typography variant="h5" component="h1">
-        {t.home.greeting}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-        {t.home.subtitle}
-      </Typography>
-      <Grid container spacing={2} sx={{ mt: 1 }}>
-        {actions.map((a) => (
-          <Grid key={a.title} size={{ xs: 6 }}>
-            <Card>
-              <CardActionArea
-                onClick={() => navigate(a.to, { state: a.state })}
-                sx={{ p: 1 }}
-              >
-                <CardContent>
-                  {a.icon}
-                  <Typography variant="subtitle1" sx={{ mt: 1 }}>
-                    {a.title}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {a.hint}
-                  </Typography>
-                </CardContent>
-              </CardActionArea>
-            </Card>
-          </Grid>
+    <Screen maxWidth="md">
+      <Card>
+        <CardContent sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+          <Typography variant="h6" component="h1">
+            {t.home.greeting}
+            {displayName ? `, ${displayName}` : ""}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {t.home.subtitle}
+          </Typography>
+        </CardContent>
+      </Card>
+      <Box
+        sx={{
+          mt: 2,
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr 1fr", md: "1fr 1fr 1fr 1fr" },
+          gap: 1.5,
+        }}
+      >
+        {actions.map((action) => (
+          <Card key={action.title} sx={{ height: "100%" }}>
+            <CardActionArea
+              onClick={() => navigate(action.to, { state: action.state })}
+              sx={{ height: "100%" }}
+            >
+              <CardContent>
+                {action.icon}
+                <Typography variant="subtitle1" sx={{ mt: 1 }}>
+                  {action.title}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {action.hint}
+                </Typography>
+              </CardContent>
+            </CardActionArea>
+          </Card>
         ))}
-      </Grid>
+      </Box>
+      <Card sx={{ mt: 2 }}>
+        <CardContent sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <BuildIcon color="primary" />
+            <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>
+              {t.assistCta.title}
+            </Typography>
+          </Box>
+          <Typography variant="body2" color="text.secondary">
+            {t.assistCta.body}
+          </Typography>
+          <Button
+            variant="contained"
+            href={MOBILE_RELEASES_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            sx={{ alignSelf: "flex-start" }}
+          >
+            {t.assistCta.download}
+          </Button>
+        </CardContent>
+      </Card>
       <Card sx={{ mt: 2 }}>
         <CardContent>
           <Box
@@ -114,6 +160,8 @@ export default function HomeScreen() {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
+              gap: 1,
+              mb: 1,
             }}
           >
             <Typography variant="subtitle1">{t.home.nearbyHazards}</Typography>
@@ -121,33 +169,43 @@ export default function HomeScreen() {
               {t.home.viewAll}
             </Button>
           </Box>
-          {error && (
-            <Alert severity="error" sx={{ mt: 1 }}>
-              {error}
-            </Alert>
-          )}
-          {!error && nearby.length === 0 && (
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          {error ? <Alert severity="error">{error}</Alert> : null}
+          {!error && nearby.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">
               {t.home.noneNearby}
             </Typography>
-          )}
-          <List dense disablePadding>
-            {nearby.map((f) => (
-              <ListItem key={f.id} disableGutters>
-                <ListItemText
-                  primary={flagTypeLabel(f.type, t)}
-                  secondary={`${f.voteCount ?? 0} ${t.flag.votes} · ${flagStatusLabel(f.status, t)}`}
-                />
-                <Chip
-                  label={flagStatusLabel(f.status, t)}
-                  size="small"
-                  color="warning"
-                />
-              </ListItem>
-            ))}
-          </List>
+          ) : null}
+          {nearby.map((flag) => (
+            <Box
+              key={flag.id}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                py: 1,
+                borderTop: 1,
+                borderColor: "divider",
+                "&:first-of-type": { borderTop: 0 },
+              }}
+            >
+              <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  {flagTypeLabel(flag.type, t)}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {flag.voteCount ?? 0} {t.flag.votes}
+                </Typography>
+              </Box>
+              <Chip
+                size="small"
+                label={flagStatusLabel(flag.status, t)}
+                sx={{ bgcolor: flagStatusColor(flag.status), color: "#fff" }}
+              />
+              <ChevronRightIcon sx={{ color: "text.secondary" }} />
+            </Box>
+          ))}
         </CardContent>
       </Card>
-    </Container>
+    </Screen>
   );
 }

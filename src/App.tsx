@@ -11,15 +11,17 @@ import BottomNavigation from "@mui/material/BottomNavigation";
 import BottomNavigationAction from "@mui/material/BottomNavigationAction";
 import Box from "@mui/material/Box";
 import BuildIcon from "@mui/icons-material/Build";
+import { useState } from "react";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import RouteIcon from "@mui/icons-material/Route";
-import TwoWheelerIcon from "@mui/icons-material/TwoWheeler";
+import EventAvailableIcon from "@mui/icons-material/EventAvailable";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { LanguageProvider, useStrings } from "./context/LanguageContext";
 import { ProfileProvider, useProfile } from "./context/ProfileContext";
 import AdminScreen from "./screens/AdminScreen";
 import ErrorBoundary from "./components/ErrorBoundary";
+import AssistCtaDialog from "./components/AssistCtaDialog";
 import HazardsScreen from "./screens/HazardsScreen";
 import HomeScreen from "./screens/HomeScreen";
 import LoginScreen from "./screens/LoginScreen";
@@ -28,11 +30,25 @@ import RolePickerScreen from "./screens/RolePickerScreen";
 import RouteScreen from "./screens/RouteScreen";
 import SavedScreen from "./screens/SavedScreen";
 import VehicleScreen from "./screens/VehicleScreen";
+import ProvidersScreen from "./screens/ProvidersScreen";
+import BillsScreen from "./screens/BillsScreen";
+import BillDetailScreen from "./screens/BillDetailScreen";
+import WarrantyClaimsScreen from "./screens/WarrantyClaimsScreen";
+import DiagnosticsScreen from "./screens/DiagnosticsScreen";
+import AssistLandingScreen from "./screens/AssistLandingScreen";
+import LandingScreen from "./screens/LandingScreen";
+import TrackingScreen from "./screens/TrackingScreen";
+import BookingLandingScreen from "./screens/BookingLandingScreen";
+import SupportScreen from "./screens/SupportScreen";
 
-function RequireAuth({ children }: { children: ReactNode }) {
+function RequireRider({ children }: { children: ReactNode }) {
   const { token } = useAuth();
+  const { loading, user } = useProfile();
   if (!token) {
     return <Navigate to="/login" replace />;
+  }
+  if (!loading && user?.role === "1") {
+    return <Navigate to="/admin" replace />;
   }
   return children;
 }
@@ -49,19 +65,53 @@ function RequireAdmin({ children }: { children: ReactNode }) {
   return children;
 }
 
+function RootScreen() {
+  const { token } = useAuth();
+  const { loading, user } = useProfile();
+  if (!token) {
+    return <LandingScreen />;
+  }
+  if (loading) {
+    return null;
+  }
+  if (user?.role === "1") {
+    return <Navigate to="/admin" replace />;
+  }
+  return <HomeScreen />;
+}
+
+function WelcomeScreen() {
+  const { token } = useAuth();
+  return token ? <Navigate to="/" replace /> : <LandingScreen />;
+}
+
 function Tabs() {
   const { t } = useStrings();
   const { token } = useAuth();
+  const { user } = useProfile();
   const navigate = useNavigate();
   const location = useLocation();
-  if (!token) {
+  const [assistOpen, setAssistOpen] = useState(false);
+  if (
+    !token ||
+    user?.role === "1" ||
+    location.pathname === "/welcome" ||
+    location.pathname.startsWith("/admin")
+  ) {
     return null;
   }
   return (
+    <>
     <BottomNavigation
       showLabels
       value={location.pathname}
-      onChange={(_, value: string) => navigate(value)}
+      onChange={(_, value: string) => {
+        if (value === "/dispatch") {
+          setAssistOpen(true);
+          return;
+        }
+        navigate(value);
+      }}
       sx={{ pb: "env(safe-area-inset-bottom)" }}
     >
       <BottomNavigationAction
@@ -75,15 +125,14 @@ function Tabs() {
         icon={<WarningAmberIcon />}
       />
       <BottomNavigationAction
-        label={`${t.tabs.dispatch} · ${t.tabs.soon}`}
+        label={t.tabs.dispatch}
         value="/dispatch"
         icon={<BuildIcon />}
-        disabled
       />
       <BottomNavigationAction
-        label={t.tabs.vehicle}
-        value="/vehicle"
-        icon={<TwoWheelerIcon />}
+        label={t.tabs.booking}
+        value="/bookings"
+        icon={<EventAvailableIcon />}
       />
       <BottomNavigationAction
         label={t.tabs.more}
@@ -91,6 +140,8 @@ function Tabs() {
         icon={<MoreHorizIcon />}
       />
     </BottomNavigation>
+    <AssistCtaDialog open={assistOpen} onClose={() => setAssistOpen(false)} />
+    </>
   );
 }
 
@@ -114,59 +165,120 @@ export default function App() {
                 <Routes>
                 <Route
                   path="/"
-                  element={
-                    <RequireAuth>
-                      <HomeScreen />
-                    </RequireAuth>
-                  }
+                  element={<RootScreen />}
                 />
+                <Route path="/welcome" element={<WelcomeScreen />} />
                 <Route
                   path="/route"
                   element={
-                    <RequireAuth>
+                    <RequireRider>
                       <RouteScreen />
-                    </RequireAuth>
+                    </RequireRider>
                   }
                 />
                 <Route path="/login" element={<LoginScreen />} />
                 <Route
                   path="/hazards"
                   element={
-                    <RequireAuth>
+                    <RequireRider>
                       <HazardsScreen />
-                    </RequireAuth>
+                    </RequireRider>
                   }
                 />
                 <Route
                   path="/vehicle"
                   element={
-                    <RequireAuth>
+                    <RequireRider>
                       <VehicleScreen />
-                    </RequireAuth>
+                    </RequireRider>
                   }
                 />
                 <Route
                   path="/saved"
                   element={
-                    <RequireAuth>
+                    <RequireRider>
                       <SavedScreen />
-                    </RequireAuth>
+                    </RequireRider>
                   }
                 />
                 <Route
                   path="/more"
                   element={
-                    <RequireAuth>
+                    <RequireRider>
                       <MoreScreen />
-                    </RequireAuth>
+                    </RequireRider>
                   }
                 />
                 <Route
                   path="/roles"
                   element={
-                    <RequireAuth>
+                    <RequireRider>
                       <RolePickerScreen />
-                    </RequireAuth>
+                    </RequireRider>
+                  }
+                />
+                <Route
+                  path="/dispatch"
+                  element={
+                    <RequireRider>
+                      <AssistLandingScreen />
+                    </RequireRider>
+                  }
+                />
+                <Route
+                  path="/providers"
+                  element={
+                    <RequireRider>
+                      <ProvidersScreen />
+                    </RequireRider>
+                  }
+                />
+                <Route
+                  path="/bookings"
+                  element={
+                    <RequireRider>
+                      <BookingLandingScreen />
+                    </RequireRider>
+                  }
+                />
+                <Route
+                  path="/bills"
+                  element={
+                    <RequireRider>
+                      <BillsScreen />
+                    </RequireRider>
+                  }
+                />
+                <Route
+                  path="/bills/:ticketId"
+                  element={
+                    <RequireRider>
+                      <BillDetailScreen />
+                    </RequireRider>
+                  }
+                />
+                <Route
+                  path="/warranty"
+                  element={
+                    <RequireRider>
+                      <WarrantyClaimsScreen />
+                    </RequireRider>
+                  }
+                />
+                <Route
+                  path="/support"
+                  element={
+                    <RequireRider>
+                      <SupportScreen />
+                    </RequireRider>
+                  }
+                />
+                <Route
+                  path="/diagnostics"
+                  element={
+                    <RequireRider>
+                      <DiagnosticsScreen />
+                    </RequireRider>
                   }
                 />
                 <Route
@@ -177,6 +289,7 @@ export default function App() {
                     </RequireAdmin>
                   }
                 />
+                <Route path="/track/:token" element={<TrackingScreen />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </ErrorBoundary>

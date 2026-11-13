@@ -55,6 +55,13 @@ export function addRideConfig(
   );
 }
 
+export function removeProfile(
+  profileId: string,
+  token: string,
+): Promise<{ removed: number }> {
+  return api.post<{ removed: number }>("/vehicleProfiles/remove", { profileId }, token);
+}
+
 export type TowVehicleType = "CAR" | "VAN" | "TRUCK";
 
 export function setTowVehicle(

@@ -111,7 +111,13 @@ things look like / compute to).
 - `screens/AdminScreen.tsx` — `/admin`, gated by `RequireAdmin`
   (`bundle.user.role === "1"`): Users tab (search, role/status/trust
   edits), Flags tab (full queue via `POST /flags/all`, moderation,
-  expiry sweep), Alleys tab (load a segment by ID, edit passability).
+  expiry sweep), Requests and Reports tabs, a Dashboard tab
+  (`POST /admin/dashboard` stat cards with 30/90-day windows), a Payouts tab
+  (pending groups, settle batch, settle cash commission, withdrawal requests
+  approve/reject via `/admin/payouts/*`) a Disputes tab
+  (`/disputes/all` queue with SHOP/RIDER/PARTIAL resolution), a Reports tab
+  (revenue/payee CSV downloads) and a Refunds tab driving the manual refund
+  queue (`REQUESTED → APPROVED → SENT → CONFIRMED`, transfer reference).
   First admin is bootstrapped manually in Firestore (`users/{uid}.role
   = "1"`); the gate 403s everyone else.
 - `screens/RolePickerScreen.tsx` — post-first-login rider chooser
@@ -164,5 +170,35 @@ things look like / compute to).
 - `npm run build` (`tsc -b` + `vite build`) must pass — types enforce the
   layer seams (e.g. services take plain data, hooks return plain state).
 - `npm run lint` (`oxlint`) must be clean.
-- No test runner is configured; behavior changes are verified by a manual
-  pass over the affected screen (search, tap, swap, stops, find, save).
+- `npm test` (Vitest + jsdom) covers i18n en/vi key parity, the API client
+  (envelope, 401 refresh/retry, unauthorized event, backend messages) and the
+  label helpers. Add pure-service tests next to these before touching a
+  screen; behavior changes get a manual pass over the affected screen.
+
+## Live tracking page
+
+`/track/:token` is public (no auth): it polls `POST /dispatch/share/view` every
+15 s and shows the ticket type, status pill (runtime `nameVi`/`name` from
+`/statuses`), helper name, ETA, last update and expiry, with an Open-in-Maps
+link. Tokens are minted from the mobile app for live tickets only; closed
+tickets and expired links show the invalid-link state.
+
+## Web parity additions
+
+The web app now mirrors the mobile app for the non-Assist, browser-safe surface:
+
+- **Landing page** (`/`, `/welcome`): public, mobile-first product page with a dark/light liquid-glass iPhone showcase, route/hazard/VIP sections, and a download CTA to the official mobile release. It does not link into the web app or advertise the Assist feature.
+- **Providers** (`/providers`): owned provider management for SHOP/TOW/MOBILE_SHOP, accepting toggle, edit/revoke, directory search and provider reviews. Directory cards render the provider's service catalog (`services`) with fixed prices or a "quote required" chip; the create/edit form edits the catalog (name, price, fixed vs inspection, category).
+- **Bills & payments** (`/bills`, `/bills/:ticketId`): rider/payee bills, itemized lines with the fare/repair breakdown (`distanceKm`, base/distance/waiting, call-out/travel, `warrantyUntil`) the refund request state (`refundRequest`) and a **Request refund** action for received payments (creates the manual refund queue entry), Cash/SePay payment, cash confirmation, ratings and disputes on completed items. The payee tab adds payout account editing (`POST/PUT /payouts/account`, bank list from `/payouts/banks`), available balance vs commission owed, withdrawal requests (`POST /payouts/request`) and batch history.
+- **Hazard chat**: HAZARD-scope chat from the hazard list/detail.
+- **Hazard photos**: browser file upload to Firebase Storage at `flags/{uid}/...`, then the Storage path is submitted with the report.
+- **Vehicle removal** and tow/ride profile support.
+- **Settings**: persisted theme/language, payment/payout notification preferences, diagnostics screen.
+- **MOBILE_SHOP onboarding** and mobile-shop license/pricing fields.
+- **Assist CTA**: `/dispatch` and the Assist tab link to the GitHub mobile release instead of rendering dispatch UI. Assist remains mobile-only because it depends on native location, background navigation, push and camera flows.
+
+Public mobile release link:
+
+```text
+https://github.com/trunghieungth2004/ROADASSISTAPP_MOBILE/releases/latest
+```
