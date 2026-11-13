@@ -234,8 +234,8 @@ function AdminShell() {
         {section === "warranty" ? <WarrantyAdminPanel token={token} /> : null}
         {section === "config" ? <ConfigAdminPanel token={token} /> : null}
         {section === "diagnostics" ? <AdminDiagnosticsPanel /> : null}
-        {section === "audit" ? <AuditAdminPanel token={token} /> : null}
-          {section === "paymentsAudit" ? <PaymentsAuditPanel token={token} /> : null}
+        {section === "audit" ? <AuditAdminPanel token={token} onOpenSection={selectSection} /> : null}
+        {section === "paymentsAudit" ? <PaymentsAuditPanel token={token} /> : null}
         </AdminLayout>
       </AdminBillProvider>
     </AdminQueueContext.Provider>
