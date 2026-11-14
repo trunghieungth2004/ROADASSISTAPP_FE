@@ -169,3 +169,27 @@ export function shopBookings(
     token,
   );
 }
+
+export type SepayCheckout = {
+  action: string;
+  method: string;
+  fields: Record<string, string>;
+  qrUrl: string;
+};
+
+export type DepositCheckout = {
+  id: string;
+  status: string;
+  checkout?: SepayCheckout | null;
+};
+
+export function depositCheckout(
+  bookingId: string,
+  token: string,
+): Promise<DepositCheckout> {
+  return api.post<DepositCheckout>(
+    "/bookings/deposit/checkout",
+    { bookingId },
+    token,
+  );
+}

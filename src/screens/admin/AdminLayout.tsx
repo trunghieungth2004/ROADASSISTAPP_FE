@@ -8,8 +8,10 @@ import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Typography from "@mui/material/Typography";
+import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import { useState, type ReactNode } from "react";
+import { useStrings } from "../../context/LanguageContext";
 
 export type AdminSection = {
   id: string;
@@ -27,6 +29,7 @@ export default function AdminLayout({
   groups,
   active,
   onSelect,
+  onSignOut,
   badges,
   children,
 }: {
@@ -34,9 +37,11 @@ export default function AdminLayout({
   groups: AdminGroup[];
   active: string;
   onSelect: (id: string) => void;
+  onSignOut: () => void;
   badges?: Record<string, number>;
   children: ReactNode;
 }) {
+  const { t } = useStrings();
   const [open, setOpen] = useState(false);
 
   const nav = (
@@ -84,6 +89,18 @@ export default function AdminLayout({
             ))}
           </Box>
         ))}
+      </List>
+      <Divider />
+      <List sx={{ py: 1 }}>
+        <ListItemButton
+          onClick={onSignOut}
+          sx={{ mx: 1, borderRadius: 2, color: "error.main" }}
+        >
+          <ListItemIcon sx={{ minWidth: 40, color: "error.main" }}>
+            <LogoutIcon />
+          </ListItemIcon>
+          <ListItemText primary={t.more.signOut} />
+        </ListItemButton>
       </List>
     </Box>
   );

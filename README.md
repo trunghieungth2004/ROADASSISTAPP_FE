@@ -12,12 +12,16 @@ npm run dev
 
 The backend emulator stack must be running — dev proxies `/api` to `http://localhost:5001` (rewritten to the `asia-southeast1/api` function, see `vite.config.ts`).
 
-For local development create `.env.local` with:
+For local development create `.env.development.local` with:
 
 ```bash
 VITE_API_BASE_URL=/api
 VITE_DEV_API_PROXY=https://asia-southeast1-roadassistapp-c2e37.cloudfunctions.net
 ```
+
+Production builds use `.env.production`, which points `VITE_API_BASE_URL` at the
+live Cloud Functions endpoint so the API prefix cannot be overridden by a local
+`.env.local`.
 
 This is required because `src/config/appConfig.json` contains the production API URL. Calling production directly from `localhost` is blocked by the backend CORS allowlist. The Vite dev/preview proxy makes the request server-side and avoids CORS.
 

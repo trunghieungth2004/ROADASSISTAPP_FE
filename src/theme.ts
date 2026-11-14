@@ -93,6 +93,20 @@ export const theme = createTheme({
     },
   },
   components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        ":root": {
+          colorScheme: "light dark",
+        },
+        "button, [role='button'], a": {
+          WebkitTapHighlightColor: "transparent",
+        },
+        "*:focus-visible": {
+          outline: "3px solid var(--mui-palette-primary-main)",
+          outlineOffset: 2,
+        },
+      },
+    },
     MuiBottomNavigation: {
       styleOverrides: {
         root: ({ theme }) => ({
@@ -115,6 +129,7 @@ export const theme = createTheme({
           boxShadow: "none",
           border: "1px solid",
           borderColor: "var(--mui-palette-divider)",
+          borderRadius: 20,
         },
       },
     },
@@ -130,6 +145,48 @@ export const theme = createTheme({
         root: {
           textTransform: "none",
           fontWeight: 600,
+          borderRadius: 12,
+          minHeight: 40,
+        },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          borderRadius: 22,
+          border: "1px solid var(--mui-palette-divider)",
+          backgroundImage: "none",
+          margin: 16,
+          width: "calc(100% - 32px)",
+        },
+      },
+    },
+    MuiDialogTitle: {
+      styleOverrides: {
+        root: {
+          fontWeight: 800,
+          paddingBottom: 8,
+        },
+      },
+    },
+    MuiDialogActions: {
+      styleOverrides: {
+        root: {
+          gap: 8,
+          padding: "12px 20px 20px",
+          flexWrap: "wrap",
+        },
+      },
+    },
+    MuiTextField: {
+      defaultProps: {
+        variant: "outlined",
+      },
+    },
+    MuiAlert: {
+      styleOverrides: {
+        root: {
+          borderRadius: 14,
         },
       },
     },
@@ -145,6 +202,8 @@ export const theme = createTheme({
       styleOverrides: {
         root: {
           minWidth: 0,
+          paddingTop: 8,
+          paddingBottom: 8,
         },
       },
     },

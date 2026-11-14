@@ -491,16 +491,6 @@ export default function ConfigAdminPanel({ token }: { token: string | null }) {
             })),
         )}
         {toggleRow(
-          t.admin.cfgTowCash,
-          t.admin.cfgTowCashDesc,
-          draft.features.towCashAtDelivery === true,
-          (value) =>
-            setDraft((prev) => ({
-              ...prev,
-              features: { ...prev.features, towCashAtDelivery: value },
-            })),
-        )}
-        {toggleRow(
           t.admin.cfgPhoneMasking,
           t.admin.cfgPhoneMaskingDesc,
           draft.features.phoneMasking === true,

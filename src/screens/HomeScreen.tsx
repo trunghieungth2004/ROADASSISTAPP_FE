@@ -15,7 +15,6 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import RouteIcon from "@mui/icons-material/Route";
 import TwoWheelerIcon from "@mui/icons-material/TwoWheeler";
 import { flagsNear, type Flag } from "../api/flags";
-import { MOBILE_RELEASES_URL } from "../components/AssistCtaDialog";
 import { flagStatusColor, flagStatusLabel } from "../components/flagStatus";
 import Screen from "../components/ui/Screen";
 import { useAuth } from "../context/AuthContext";
@@ -23,6 +22,7 @@ import { useProfile } from "../context/ProfileContext";
 import { useStrings } from "../context/LanguageContext";
 import { flagTypeLabel } from "../i18n/labels";
 import { mapDefaults } from "../map/style";
+import { toMessage } from "../api/client";
 
 export default function HomeScreen() {
   const { t } = useStrings();
@@ -49,13 +49,7 @@ export default function HomeScreen() {
     if (!token) return;
     flagsNear(point.lat, point.lng, 3000, token)
       .then((flags) => setNearby(flags.slice(0, 5)))
-      .catch((err: unknown) =>
-        setError(
-          err && typeof err === "object" && "message" in err
-            ? String(err.message)
-            : "Request failed",
-        ),
-      );
+      .catch((err: unknown) => setError(toMessage(err)));
   }, [token, point]);
 
   const actions = [
@@ -136,20 +130,18 @@ export default function HomeScreen() {
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <BuildIcon color="primary" />
             <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>
-              {t.assistCta.title}
+              {t.assist.title}
             </Typography>
           </Box>
           <Typography variant="body2" color="text.secondary">
-            {t.assistCta.body}
+            {t.assist.homeHint}
           </Typography>
           <Button
             variant="contained"
-            href={MOBILE_RELEASES_URL}
-            target="_blank"
-            rel="noopener noreferrer"
+            onClick={() => navigate("/dispatch")}
             sx={{ alignSelf: "flex-start" }}
           >
-            {t.assistCta.download}
+            {t.assist.requestHelp}
           </Button>
         </CardContent>
       </Card>

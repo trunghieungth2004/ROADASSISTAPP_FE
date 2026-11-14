@@ -95,6 +95,30 @@ export function fetchMyProviders(token: string): Promise<Provider[]> {
   return api.post<Provider[]>("/providers/mine", {}, token);
 }
 
+export type ProviderStats = {
+  providers: Array<{
+    id: string;
+    kind: ProviderKind;
+    name: string;
+    status: string;
+    accepting: boolean;
+    suspended: boolean;
+    ratingAvg: number;
+    ratingCount: number;
+    completedJobs: number;
+  }>;
+  payouts: {
+    batches: number;
+    gross: number;
+    net: number;
+    commissionOwed: number;
+  };
+};
+
+export function providerStats(token: string): Promise<ProviderStats> {
+  return api.post<ProviderStats>("/providers/stats", {}, token);
+}
+
 export type ProviderPricingLimits = {
   TOW: {
     baseMin: number;

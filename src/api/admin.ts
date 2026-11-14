@@ -77,6 +77,14 @@ export type AdminDashboard = {
   };
 };
 
+export type AdminPayoutAccount = {
+  bankCode: string;
+  bankName: string;
+  accountNumber: string;
+  holderName: string;
+  updatedAt: string;
+};
+
 export type AdminPayeeGroup = {
   payeeId: string;
   payeeName: string | null;
@@ -89,6 +97,7 @@ export type AdminPayeeGroup = {
   ticketIds: string[];
   commissionOwed: number;
   available: number;
+  account?: AdminPayoutAccount | null;
 };
 
 export type AdminPayoutRequest = {
@@ -105,6 +114,7 @@ export type AdminPayoutRequest = {
   requestedAt: string;
   decidedAt: string | null;
   decisionNote: string | null;
+  proofUrl?: string | null;
 };
 
 export type AdminDisputeTicket = {
@@ -212,8 +222,12 @@ export function adminPendingPayouts(token: string): Promise<AdminPayeeGroup[]> {
   return api.post<AdminPayeeGroup[]>("/admin/payouts/pending", {}, token);
 }
 
-export function adminSettlePayout(token: string, payeeId: string, note?: string): Promise<{ batch: { id: string; payoutRef: string }; settled: number; commissionDeducted: number }> {
-  return api.post("/admin/payouts/batch", { payeeId, ...(note ? { note } : {}) }, token);
+export function adminSettlePayout(token: string, payeeId: string, note?: string, proofUrl?: string): Promise<{ batch: { id: string; payoutRef: string }; settled: number; commissionDeducted: number }> {
+  return api.post("/admin/payouts/batch", {
+    payeeId,
+    ...(note ? { note } : {}),
+    ...(proofUrl ? { proofUrl } : {}),
+  }, token);
 }
 
 export function adminSettleCommission(token: string, payeeId: string): Promise<{ settled: number }> {
@@ -224,8 +238,13 @@ export function adminPayoutRequests(token: string, status?: string): Promise<Adm
   return api.post<AdminPayoutRequest[]>("/admin/payouts/requests", status ? { status } : {}, token);
 }
 
-export function adminDecidePayoutRequest(token: string, requestId: string, approve: boolean, note?: string): Promise<{ request: AdminPayoutRequest; batch: { id: string; payoutRef: string } | null; commissionDeducted: number }> {
-  return api.post("/admin/payouts/requests/decide", { requestId, approve, ...(note ? { note } : {}) }, token);
+export function adminDecidePayoutRequest(token: string, requestId: string, approve: boolean, note?: string, proofUrl?: string): Promise<{ request: AdminPayoutRequest; batch: { id: string; payoutRef: string } | null; commissionDeducted: number }> {
+  return api.post("/admin/payouts/requests/decide", {
+    requestId,
+    approve,
+    ...(note ? { note } : {}),
+    ...(proofUrl ? { proofUrl } : {}),
+  }, token);
 }
 
 export function adminDisputes(token: string, status?: string): Promise<AdminDispute[]> {
@@ -505,6 +524,8 @@ export type AdminPayoutBatch = {
   payoutRef: string;
   payoutMethod: string;
   note?: string | null;
+  proofUrl?: string | null;
+  payeeAccount?: AdminPayoutAccount | null;
   batchedAt: string;
   createdAt: string;
 };

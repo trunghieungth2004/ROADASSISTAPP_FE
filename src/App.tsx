@@ -11,7 +11,6 @@ import BottomNavigation from "@mui/material/BottomNavigation";
 import BottomNavigationAction from "@mui/material/BottomNavigationAction";
 import Box from "@mui/material/Box";
 import BuildIcon from "@mui/icons-material/Build";
-import { useState } from "react";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import RouteIcon from "@mui/icons-material/Route";
 import EventAvailableIcon from "@mui/icons-material/EventAvailable";
@@ -21,7 +20,6 @@ import { LanguageProvider, useStrings } from "./context/LanguageContext";
 import { ProfileProvider, useProfile } from "./context/ProfileContext";
 import AdminScreen from "./screens/AdminScreen";
 import ErrorBoundary from "./components/ErrorBoundary";
-import AssistCtaDialog from "./components/AssistCtaDialog";
 import HazardsScreen from "./screens/HazardsScreen";
 import HomeScreen from "./screens/HomeScreen";
 import LoginScreen from "./screens/LoginScreen";
@@ -35,10 +33,12 @@ import BillsScreen from "./screens/BillsScreen";
 import BillDetailScreen from "./screens/BillDetailScreen";
 import WarrantyClaimsScreen from "./screens/WarrantyClaimsScreen";
 import DiagnosticsScreen from "./screens/DiagnosticsScreen";
-import AssistLandingScreen from "./screens/AssistLandingScreen";
+import AssistScreen from "./screens/AssistScreen";
 import LandingScreen from "./screens/LandingScreen";
 import TrackingScreen from "./screens/TrackingScreen";
-import BookingLandingScreen from "./screens/BookingLandingScreen";
+import BookingScreen from "./screens/BookingScreen";
+import ProviderJobsScreen from "./screens/provider/ProviderJobsScreen";
+import ProviderBookingsScreen from "./screens/provider/ProviderBookingsScreen";
 import SupportScreen from "./screens/SupportScreen";
 
 function RequireRider({ children }: { children: ReactNode }) {
@@ -91,7 +91,6 @@ function Tabs() {
   const { user } = useProfile();
   const navigate = useNavigate();
   const location = useLocation();
-  const [assistOpen, setAssistOpen] = useState(false);
   if (
     !token ||
     user?.role === "1" ||
@@ -100,16 +99,15 @@ function Tabs() {
   ) {
     return null;
   }
+  const navValue = location.pathname.startsWith("/provider/") ?
+    "/more" :
+    location.pathname;
   return (
     <>
     <BottomNavigation
       showLabels
-      value={location.pathname}
+      value={navValue}
       onChange={(_, value: string) => {
-        if (value === "/dispatch") {
-          setAssistOpen(true);
-          return;
-        }
         navigate(value);
       }}
       sx={{ pb: "env(safe-area-inset-bottom)" }}
@@ -140,7 +138,6 @@ function Tabs() {
         icon={<MoreHorizIcon />}
       />
     </BottomNavigation>
-    <AssistCtaDialog open={assistOpen} onClose={() => setAssistOpen(false)} />
     </>
   );
 }
@@ -221,7 +218,7 @@ export default function App() {
                   path="/dispatch"
                   element={
                     <RequireRider>
-                      <AssistLandingScreen />
+                      <AssistScreen />
                     </RequireRider>
                   }
                 />
@@ -237,7 +234,23 @@ export default function App() {
                   path="/bookings"
                   element={
                     <RequireRider>
-                      <BookingLandingScreen />
+                      <BookingScreen />
+                    </RequireRider>
+                  }
+                />
+                <Route
+                  path="/provider/jobs"
+                  element={
+                    <RequireRider>
+                      <ProviderJobsScreen />
+                    </RequireRider>
+                  }
+                />
+                <Route
+                  path="/provider/bookings"
+                  element={
+                    <RequireRider>
+                      <ProviderBookingsScreen />
                     </RequireRider>
                   }
                 />

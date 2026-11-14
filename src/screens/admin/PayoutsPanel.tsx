@@ -23,6 +23,8 @@ import {
   type AdminPayoutRequest,
 } from "../../api/admin";
 import { useStrings } from "../../context/LanguageContext";
+import StorageImage from "../../components/StorageImage";
+import { uploadImages } from "../../storage/uploads";
 import { adminStatusLabel, adminStatusTone } from "./adminLabels";
 import AdminListItem from "./AdminListItem";
 import MasterDetail from "./MasterDetail";
@@ -52,6 +54,45 @@ export default function PayoutsPanel({ token }: { token: string | null }) {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [proofFile, setProofFile] = useState<File | null>(null);
+
+  const needsProof = confirm?.kind === "approve" || confirm?.kind === "settle";
+
+  async function confirmAction(): Promise<void> {
+    const current = confirm;
+    if (!current || !token || busy) return;
+    if (needsProof && proofFile === null) {
+      setError(t.admin.payoutProofRequired);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      let proofUrl: string | undefined;
+      if (needsProof && proofFile !== null) {
+        const paths = await uploadImages([proofFile], "payouts/proof");
+        proofUrl = paths[0];
+      }
+      if (current.kind === "approve") {
+        await adminDecidePayoutRequest(token, current.request.id, true, undefined, proofUrl);
+      } else if (current.kind === "reject") {
+        await adminDecidePayoutRequest(token, current.request.id, false);
+      } else if (current.kind === "settle") {
+        await adminSettlePayout(token, current.group.payeeId, undefined, proofUrl);
+      } else if (current.kind === "commission") {
+        await adminSettleCommission(token, current.group.payeeId);
+      }
+      setProofFile(null);
+      setConfirm(null);
+      await load(token);
+      refresh();
+      setNotice(t.admin.saved);
+    } catch (err) {
+      setError(toMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function load(key: string) {
     setError(null);
@@ -72,23 +113,6 @@ export default function PayoutsPanel({ token }: { token: string | null }) {
   useEffect(() => {
     if (token) void load(token);
   }, [token]);
-
-  async function run(action: () => Promise<unknown>) {
-    if (!token || busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await action();
-      setConfirm(null);
-      await load(token);
-      refresh();
-      setNotice(t.admin.saved);
-    } catch (err) {
-      setError(toMessage(err));
-    } finally {
-      setBusy(false);
-    }
-  }
 
   const selectedRequest =
     selection?.kind === "request"
@@ -233,6 +257,16 @@ export default function PayoutsPanel({ token }: { token: string | null }) {
                     {selectedRequest.decisionNote}
                   </Typography>
                 ) : null}
+                {selectedRequest.proofUrl ? (
+                  <Box>
+                    <Typography variant="subtitle2">{t.admin.payoutProof}</Typography>
+                    <StorageImage
+                      path={selectedRequest.proofUrl}
+                      alt={t.admin.payoutProof}
+                      sx={{ width: "100%", maxHeight: 260, borderRadius: 1, mt: 1 }}
+                    />
+                  </Box>
+                ) : null}
               </CardContent>
             </Card>
           ) : selectedGroup ? (
@@ -245,15 +279,22 @@ export default function PayoutsPanel({ token }: { token: string | null }) {
                 <Typography variant="body2">
                   {`${t.admin.net}: ${money(selectedGroup.net)} · ${t.admin.commissionOwed}: ${money(selectedGroup.commissionOwed)}`}
                 </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {selectedGroup.account ?
+                    `${t.admin.payoutAccount}: ${selectedGroup.account.bankName} · ${maskAccount(selectedGroup.account.accountNumber)} · ${selectedGroup.account.holderName}` :
+                    `${t.admin.payoutAccount}: ${t.admin.payoutAccountMissing}`}
+                </Typography>
                 <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                  <Button
-                    size="small"
-                    variant="contained"
-                    disabled={busy}
-                    onClick={() => setConfirm({ kind: "settle", group: selectedGroup })}
-                  >
-                    {t.admin.settleAll}
-                  </Button>
+                  {selectedGroup.itemCount > 0 ? (
+                    <Button
+                      size="small"
+                      variant="contained"
+                      disabled={busy}
+                      onClick={() => setConfirm({ kind: "settle", group: selectedGroup })}
+                    >
+                      {t.admin.settleAll}
+                    </Button>
+                  ) : null}
                   {selectedGroup.commissionOwed > 0 ? (
                     <Button
                       size="small"
@@ -285,19 +326,44 @@ export default function PayoutsPanel({ token }: { token: string | null }) {
                 <Typography variant="body2">
                   {`${t.admin.batchNet}: ${money(selectedBatch.netPayout ?? selectedBatch.net)} · ${selectedBatch.itemCount} ${t.admin.batchItems}`}
                 </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {selectedBatch.payeeAccount ?
+                    `${t.admin.payoutAccount}: ${selectedBatch.payeeAccount.bankName} · ${maskAccount(selectedBatch.payeeAccount.accountNumber)} · ${selectedBatch.payeeAccount.holderName}` :
+                    `${t.admin.payoutAccount}: ${t.admin.payoutAccountMissing}`}
+                </Typography>
                 {selectedBatch.note ? (
                   <Typography variant="caption" color="text.secondary">
                     {selectedBatch.note}
                   </Typography>
+                ) : null}
+                {selectedBatch.proofUrl ? (
+                  <Box>
+                    <Typography variant="subtitle2">{t.admin.payoutProof}</Typography>
+                    <StorageImage
+                      path={selectedBatch.proofUrl}
+                      alt={t.admin.payoutProof}
+                      sx={{ width: "100%", maxHeight: 260, borderRadius: 1, mt: 1 }}
+                    />
+                  </Box>
                 ) : null}
               </CardContent>
             </Card>
           ) : null
         }
       />
-      <Dialog open={confirm !== null} onClose={() => setConfirm(null)} fullWidth maxWidth="xs">
+      <Dialog
+        open={confirm !== null}
+        onClose={() => {
+          setConfirm(null);
+          setProofFile(null);
+          setError(null);
+        }}
+        fullWidth
+        maxWidth="xs"
+      >
         <DialogTitle>{t.admin.confirmTitle}</DialogTitle>
         <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          {error ? <Alert severity="error">{error}</Alert> : null}
           <Typography variant="body2">
             {confirm?.kind === "approve"
               ? t.admin.confirmPayoutApprove
@@ -317,30 +383,46 @@ export default function PayoutsPanel({ token }: { token: string | null }) {
               {`${confirm.group.payeeName ?? confirm.group.payeeId} · ${t.admin.net}: ${money(confirm.group.net)}`}
             </Typography>
           ) : null}
+          {needsProof ? (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 1 }}>
+              <Typography variant="subtitle2">{t.admin.payoutProof}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {t.admin.payoutProofHint}
+              </Typography>
+              <Button variant="outlined" component="label">
+                {t.admin.payoutProofUpload}
+                <input
+                  hidden
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => {
+                    setProofFile(event.target.files?.[0] ?? null);
+                    setError(null);
+                  }}
+                />
+              </Button>
+              {proofFile ? (
+                <Typography variant="caption" color="text.secondary">{proofFile.name}</Typography>
+              ) : null}
+            </Box>
+          ) : null}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfirm(null)}>{t.common.cancel}</Button>
+          <Button
+            onClick={() => {
+              setConfirm(null);
+              setProofFile(null);
+              setError(null);
+            }}
+            disabled={busy}
+          >
+            {t.common.cancel}
+          </Button>
           <Button
             variant="contained"
             color={confirm?.kind === "reject" ? "error" : "primary"}
             disabled={busy}
-            onClick={() => {
-              const current = confirm;
-              if (!current) return;
-              if (current.kind === "approve") {
-                const requestId = current.request.id;
-                void run(() => adminDecidePayoutRequest(token as string, requestId, true));
-              } else if (current.kind === "reject") {
-                const requestId = current.request.id;
-                void run(() => adminDecidePayoutRequest(token as string, requestId, false));
-              } else if (current.kind === "settle") {
-                const payeeId = current.group.payeeId;
-                void run(() => adminSettlePayout(token as string, payeeId));
-              } else if (current.kind === "commission") {
-                const payeeId = current.group.payeeId;
-                void run(() => adminSettleCommission(token as string, payeeId));
-              }
-            }}
+            onClick={() => void confirmAction()}
           >
             {t.common.save}
           </Button>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -18,10 +18,16 @@ import BookmarkIcon from "@mui/icons-material/Bookmark";
 import BuildIcon from "@mui/icons-material/Build";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import DownloadIcon from "@mui/icons-material/Download";
+import EventAvailableIcon from "@mui/icons-material/EventAvailable";
+import HandymanIcon from "@mui/icons-material/Handyman";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import LogoutIcon from "@mui/icons-material/Logout";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import Card from "@mui/material/Card";
 import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import InsightsIcon from "@mui/icons-material/Insights";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import TranslateIcon from "@mui/icons-material/Translate";
@@ -46,6 +52,13 @@ import { useAuth } from "../context/AuthContext";
 import { useProfile } from "../context/ProfileContext";
 import { useStrings } from "../context/LanguageContext";
 import { vehicleTypeLabel } from "../i18n/labels";
+import { myBills, type Bill } from "../api/bills";
+import { shopBookings, type Booking } from "../api/bookings";
+import { userRatings } from "../api/ratings";
+import { fetchMyProviders, providerStats as fetchProviderStats, type Provider, type ProviderStats } from "../api/providers";
+import { buildProviderDashboard, buildRiderDashboard } from "./more/dashboardData";
+import DashboardDialog from "./more/DashboardDialog";
+import { profileRoleLabel, profileServiceKinds } from "./more/profileKinds";
 
 export default function MoreScreen() {
   const { t, lang, toggle } = useStrings();
@@ -62,6 +75,13 @@ export default function MoreScreen() {
   const [notifBusy, setNotifBusy] = useState(false);
   const [prefs, setPrefs] = useState<NotificationPrefs | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [dashboardMode, setDashboardMode] = useState<"RIDER" | "PROVIDER">("RIDER");
+  const [dashboardOpen, setDashboardOpen] = useState(false);
+  const [bills, setBills] = useState<Bill[]>([]);
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [stats, setStats] = useState<ProviderStats | null>(null);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [rating, setRating] = useState({avg: 0, count: 0});
 
   const displayName = user?.displayName || user?.email || "—";
   const services = user?.services ?? [];
@@ -70,6 +90,39 @@ export default function MoreScreen() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+  useEffect(() => {
+    if (!token) {
+      setBills([]);
+      setProviders([]);
+      setStats(null);
+      setBookings([]);
+      setRating({avg: 0, count: 0});
+      return;
+    }
+    void myBills(token).then((rows) => setBills(Array.isArray(rows) ? rows : [])).catch(() => setBills([]));
+    void fetchProviderStats(token).then(setStats).catch(() => setStats(null));
+    if (user?.id) {
+      void userRatings(user.id, "RIDER", undefined, token)
+        .then((result) => setRating({avg: result.avg, count: result.count}))
+        .catch(() => setRating({avg: 0, count: 0}));
+    }
+    void fetchMyProviders(token).then(async (rows) => {
+      setProviders(rows);
+      const shops = rows.filter((row) => row.kind === "SHOP");
+      const groups = await Promise.all(shops.map((shop) =>
+        shopBookings(shop.id, token)
+          .then((result) => result.bookings)
+          .catch(() => [] as Booking[])));
+      const unique = new Map<string, Booking>();
+      for (const group of groups) {
+        for (const row of group) unique.set(row.id, row);
+      }
+      setBookings([...unique.values()]);
+    }).catch(() => {
+      setProviders([]);
+      setBookings([]);
+    });
+  }, [token, user?.id]);
 
   function openEdit() {
     setNameDraft(user?.displayName ?? "");
@@ -134,14 +187,32 @@ export default function MoreScreen() {
       return;
     }
   }
-
+  const hasProviderRole = services.some((service) =>
+    service === "SHOP" || service === "TOW" || service === "MOBILE_SHOP") ||
+    providers.length > 0;
+  const shopProviders = providers.filter((row) =>
+    row.kind === "SHOP" && row.status === "ACTIVE" && row.suspended !== true);
+  const profileKinds = profileServiceKinds(services, providers);
+  const riderDashboard = useMemo(() => buildRiderDashboard({
+    bills,
+    rating,
+    t,
+    lang,
+  }), [bills, rating, t, lang]);
+  const providerDashboard = useMemo(() => buildProviderDashboard({
+    stats,
+    bookings,
+    t,
+    lang,
+  }), [stats, bookings, t, lang]);
+  const currentDashboard = dashboardMode === "RIDER" ? riderDashboard : providerDashboard;
   return (
     <Screen>
       <ProfileHeader
         name={displayName}
         email={user?.email ?? ""}
-        roleLabel={isAdmin ? t.more.roleAdmin : t.more.roleUser}
-        services={services.map(serviceLabel)}
+        roleLabel={profileRoleLabel(services, isAdmin, t)}
+        services={profileKinds.map(serviceLabel)}
         onEdit={openEdit}
       />
       <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 1.25 }}>
@@ -184,6 +255,50 @@ export default function MoreScreen() {
             ].filter((part): part is string => Boolean(part)).join(" · ")}
           </Typography>
         </Alert>
+      ) : null}
+      <Box sx={{ mt: 2 }}>
+        <Card>
+          {hasProviderRole ? (
+            <Box sx={{ px: 2, pt: 1.5, pb: 1, borderBottom: 1, borderColor: "divider" }}>
+              <ToggleButtonGroup
+                size="small"
+                exclusive
+                value={dashboardMode}
+                onChange={(_, value: "RIDER" | "PROVIDER" | null) => {
+                  if (value !== null) setDashboardMode(value);
+                }}
+                fullWidth
+              >
+                <ToggleButton value="RIDER">{t.more.dashboardRider}</ToggleButton>
+                <ToggleButton value="PROVIDER">{t.more.dashboardProvider}</ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+          ) : null}
+          <ListRow
+            icon={<InsightsIcon />}
+            label={t.more.dashboard}
+            hint={currentDashboard.summary}
+            onClick={() => setDashboardOpen(true)}
+          />
+        </Card>
+      </Box>
+      {shopProviders.length > 0 ? (
+        <Box sx={{ mt: 2 }}>
+          <ListCard>
+            <ListRow
+              icon={<HandymanIcon />}
+              label={t.provider.walkInJobs}
+              hint={t.provider.walkInJobsHint}
+              onClick={() => navigate("/provider/jobs")}
+            />
+            <ListRow
+              icon={<EventAvailableIcon />}
+              label={t.provider.shopBookings}
+              hint={t.provider.shopBookingsHint}
+              onClick={() => navigate("/provider/bookings")}
+            />
+          </ListCard>
+        </Box>
       ) : null}
       <Box sx={{ mt: 2 }}>
         <ListCard>
@@ -273,7 +388,8 @@ export default function MoreScreen() {
           />
           <ListRow
             icon={<BuildIcon />}
-            label={t.assistCta.title}
+            label={t.assist.title}
+            hint={t.assist.screenHint}
             onClick={() => navigate("/dispatch")}
           />
           <ListRow
@@ -299,6 +415,12 @@ export default function MoreScreen() {
           />
         </ListCard>
       </Box>
+      <DashboardDialog
+        t={t}
+        data={currentDashboard.data}
+        open={dashboardOpen}
+        onClose={() => setDashboardOpen(false)}
+      />
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} fullWidth maxWidth="xs">
         <DialogTitle>{t.more.editName}</DialogTitle>
         <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>

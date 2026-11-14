@@ -13,9 +13,11 @@ export default function Screen({
       maxWidth={maxWidth}
       sx={{
         py: 2,
-        px: { xs: 2, sm: 2.5 },
+        px: { xs: 1.5, sm: 2.5 },
         overflowY: "auto",
         height: "100%",
+        boxSizing: "border-box",
+        scrollbarGutter: "stable",
       }}
     >
       {children}

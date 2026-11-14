@@ -98,7 +98,9 @@ export default function BillsScreen() {
     setAccountError(null);
     setAccountOpen(true);
     if (banks.length === 0 && token) {
-      void payoutBanks(token).then(setBanks).catch(() => undefined);
+      void payoutBanks(token)
+        .then(setBanks)
+        .catch((err) => setAccountError(toMessage(err)));
     }
   }
 

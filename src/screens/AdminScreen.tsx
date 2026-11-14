@@ -15,6 +15,8 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
+import Alert from "@mui/material/Alert";
+import Button from "@mui/material/Button";
 import { adminAppeals, adminDisputes, adminRefunds, adminReports, adminWarrantyClaims } from "../api/admin";
 import { fetchPendingProviders } from "../api/providers";
 import { adminSupport } from "../api/support";
@@ -70,7 +72,7 @@ type SectionId =
 
 function AdminShell() {
   const { t } = useStrings();
-  const { token } = useAuth();
+  const { token, signOut } = useAuth();
   const { showToast } = useAdminToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const section = (searchParams.get("section") as SectionId | null) ?? "dashboard";
@@ -83,6 +85,7 @@ function AdminShell() {
     setSearchParams(params, { replace: true });
   }, [searchParams, setSearchParams]);
   const [counts, setCounts] = useState<Record<string, number>>({});
+  const [countsError, setCountsError] = useState(false);
 
   useEffect(() => {
     let dispose: (() => void) | null = null;
@@ -127,36 +130,46 @@ function AdminShell() {
 
   const refreshCounts = useCallback(() => {
     if (!token) return;
+    setCountsError(false);
     void Promise.all([
       fetchPendingProviders(token)
         .then((rows) => ({ key: "requests", value: rows.length }))
-        .catch(() => ({ key: "requests", value: 0 })),
+        .catch(() => ({ key: "requests", value: null })),
       adminReports(token, undefined, "OPEN")
         .then((result) => ({ key: "reports", value: result.reports.length }))
-        .catch(() => ({ key: "reports", value: 0 })),
+        .catch(() => ({ key: "reports", value: null })),
       adminAppeals(token, undefined, "OPEN")
         .then((rows) => ({ key: "appeals", value: rows.length }))
-        .catch(() => ({ key: "appeals", value: 0 })),
+        .catch(() => ({ key: "appeals", value: null })),
       adminDisputes(token)
         .then((rows) => ({
           key: "disputes",
           value: rows.filter((row) => row.status === "OPEN").length,
         }))
-        .catch(() => ({ key: "disputes", value: 0 })),
+        .catch(() => ({ key: "disputes", value: null })),
       adminRefunds(token, "REQUESTED")
         .then((rows) => ({ key: "refunds", value: rows.length }))
-        .catch(() => ({ key: "refunds", value: 0 })),
+        .catch(() => ({ key: "refunds", value: null })),
       adminSupport(token, "OPEN")
         .then((result) => ({ key: "support", value: result.tickets.length }))
-        .catch(() => ({ key: "support", value: 0 })),
+        .catch(() => ({ key: "support", value: null })),
       adminWarrantyClaims(token, "OPEN")
         .then((rows) => ({
           key: "warranty",
           value: rows.filter((row) => row.status === "OPEN").length,
         }))
-        .catch(() => ({ key: "warranty", value: 0 })),
+        .catch(() => ({ key: "warranty", value: null })),
     ]).then((entries) => {
-      setCounts(Object.fromEntries(entries.map((entry) => [entry.key, entry.value])));
+      const failed = entries.some((entry) => entry.value === null);
+      setCountsError(failed);
+      setCounts((current) => ({
+        ...current,
+        ...Object.fromEntries(
+          entries
+            .filter((entry): entry is { key: string; value: number } => entry.value !== null)
+            .map((entry) => [entry.key, entry.value]),
+        ),
+      }));
     });
   }, [token]);
 
@@ -213,8 +226,15 @@ function AdminShell() {
           active={section}
           badges={counts}
           onSelect={(id) => selectSection(id)}
+          onSignOut={() => void signOut()}
         >
           <AdminGlobalSearch token={token} onOpenSection={selectSection} />
+        {countsError ? (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            {t.common.retry}
+            <Button size="small" onClick={refreshCounts}>{t.common.retry}</Button>
+          </Alert>
+        ) : null}
         {section === "dashboard" ? (
           <DashboardPanel token={token} onOpenSection={selectSection} />
         ) : null}

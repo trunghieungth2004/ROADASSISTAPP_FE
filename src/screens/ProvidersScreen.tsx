@@ -16,13 +16,18 @@ import Divider from "@mui/material/Divider";
 import MenuItem from "@mui/material/MenuItem";
 import Rating from "@mui/material/Rating";
 import Switch from "@mui/material/Switch";
-import Tab from "@mui/material/Tab";
-import Tabs from "@mui/material/Tabs";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import CircularProgress from "@mui/material/CircularProgress";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
 import Screen from "../components/ui/Screen";
 import AddIcon from "@mui/icons-material/Add";
+import ListAltIcon from "@mui/icons-material/ListAlt";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
+import SearchIcon from "@mui/icons-material/Search";
 import { toMessage } from "../api/client";
 import {
   createMobileShopProvider,
@@ -44,6 +49,7 @@ import {
 import { mapDefaults } from "../map/style";
 import { useAuth } from "../context/AuthContext";
 import { useStrings } from "../context/LanguageContext";
+import ConfirmDialog from "../components/ui/ConfirmDialog";
 
 type Mode = "mine" | "find";
 
@@ -110,6 +116,8 @@ export default function ProvidersScreen() {
   const [mode, setMode] = useState<Mode>("mine");
   const [mine, setMine] = useState<Provider[]>([]);
   const [found, setFound] = useState<Provider[]>([]);
+  const [mineLoading, setMineLoading] = useState(true);
+  const [searched, setSearched] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -122,13 +130,19 @@ export default function ProvidersScreen() {
   const [reportReason, setReportReason] = useState("INFO_INACCURATE");
   const [reportNote, setReportNote] = useState("");
   const [reportBusy, setReportBusy] = useState(false);
+  const [revokeFor, setRevokeFor] = useState<Provider | null>(null);
+  const [revokeBusy, setRevokeBusy] = useState(false);
+  const [revokeError, setRevokeError] = useState<string | null>(null);
 
   const reloadMine = useCallback(async () => {
     if (!token) return;
+    setMineLoading(true);
     try {
       setMine(await fetchMyProviders(token));
     } catch (err) {
       setError(toMessage(err));
+    } finally {
+      setMineLoading(false);
     }
   }, [token]);
 
@@ -147,6 +161,7 @@ export default function ProvidersScreen() {
         ? await searchProviders(point.lat, point.lng, query.trim(), token, options)
         : await nearProviders(point.lat, point.lng, token, { ...options, radiusMeters: 10000 });
       setFound(rows);
+      setSearched(true);
     } catch (err) {
       setError(toMessage(err));
     } finally {
@@ -168,17 +183,19 @@ export default function ProvidersScreen() {
     }
   }
 
-  async function onRevoke(provider: Provider) {
-    if (!token || !window.confirm(t.provider.revokeConfirm)) return;
-    setBusy(true);
+  async function onRevoke(): Promise<void> {
+    if (!token || !revokeFor || revokeBusy) return;
+    setRevokeBusy(true);
+    setRevokeError(null);
     try {
-      await revokeProvider(provider.id, token);
+      await revokeProvider(revokeFor.id, token);
+      setRevokeFor(null);
       await reloadMine();
       setNotice(t.provider.revoked);
     } catch (err) {
-      setError(toMessage(err));
+      setRevokeError(toMessage(err));
     } finally {
-      setBusy(false);
+      setRevokeBusy(false);
     }
   }
 
@@ -199,7 +216,12 @@ export default function ProvidersScreen() {
       <Button variant="contained" startIcon={<AddIcon />} onClick={() => setForm({ mode: "create", provider: null })}>
         {t.provider.add}
       </Button>
-      {mine.length === 0 && <Alert severity="info">{t.provider.none}</Alert>}
+      {mineLoading ? (
+        <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+          <CircularProgress size={28} aria-label={t.common.loading} />
+        </Box>
+      ) : null}
+      {!mineLoading && mine.length === 0 && <Alert severity="info">{t.provider.none}</Alert>}
       {mine.map((provider) => (
         <Card key={provider.id}>
           <CardContent sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -219,7 +241,7 @@ export default function ProvidersScreen() {
             </Box>
             <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
               <Button size="small" onClick={() => setForm({ mode: "edit", provider })}>{t.provider.edit}</Button>
-              <Button size="small" color="error" onClick={() => void onRevoke(provider)}>{t.provider.revoke}</Button>
+              <Button size="small" color="error" onClick={() => { setRevokeError(null); setRevokeFor(provider); }}>{t.provider.revoke}</Button>
             </Box>
           </CardContent>
         </Card>
@@ -229,9 +251,9 @@ export default function ProvidersScreen() {
 
   const findCard = (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <Box sx={{ display: "flex", gap: 1 }}>
+      <Box sx={{ display: "flex", gap: 1, flexDirection: { xs: "column", sm: "row" } }}>
         <TextField size="small" fullWidth label={t.provider.searchLabel} value={query} onChange={(e) => setQuery(e.target.value)} />
-        <TextField select size="small" label={t.provider.kind} value={kind} onChange={(e) => setKind(e.target.value as ProviderKind | "")} sx={{ minWidth: 140 }}>
+        <TextField select size="small" label={t.provider.kind} value={kind} onChange={(e) => setKind(e.target.value as ProviderKind | "")} sx={{ minWidth: { sm: 140 } }}>
           <MenuItem value="">{t.provider.allKinds}</MenuItem>
           <MenuItem value="SHOP">Shop</MenuItem>
           <MenuItem value="TOW">Tow</MenuItem>
@@ -239,7 +261,7 @@ export default function ProvidersScreen() {
         </TextField>
         <Button variant="contained" onClick={() => void findProviders()} disabled={busy}>{t.provider.find}</Button>
       </Box>
-      {found.length === 0 && <Alert severity="info">{t.provider.noResults}</Alert>}
+      {searched && found.length === 0 && <Alert severity="info">{t.provider.noResults}</Alert>}
       {found.map((provider) => (
         <Card key={provider.id}>
           <CardContent sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -273,7 +295,7 @@ export default function ProvidersScreen() {
                 ))}
               </Box>
             )}
-            <Box sx={{ display: "flex", gap: 1 }}>
+            <Box sx={{ display: "flex", gap: 1, flexDirection: { xs: "column", sm: "row" } }}>
               <Button size="small" onClick={() => void openReviews(provider)}>{t.provider.reviews}</Button>
               <Button size="small" color="error" onClick={() => { setReportFor(provider); setReportReason("INFO_INACCURATE"); setReportNote(""); }}>{t.provider.report}</Button>
             </Box>
@@ -286,10 +308,23 @@ export default function ProvidersScreen() {
   return (
     <Screen maxWidth="md">
       <Typography variant="h6">{t.provider.title}</Typography>
-      <Tabs value={mode} onChange={(_, value: Mode) => setMode(value)} sx={{ mt: 1 }}>
-        <Tab value="mine" label={t.provider.mine} />
-        <Tab value="find" label={t.provider.findTab} />
-      </Tabs>
+      <ToggleButtonGroup
+        exclusive
+        value={mode}
+        onChange={(_, value: Mode | null) => {
+          if (value !== null) setMode(value);
+        }}
+        aria-label={t.provider.title}
+        size="small"
+        sx={{ mt: 1 }}
+      >
+        <ToggleButton value="mine" aria-label={t.provider.mine}>
+          <ListAltIcon />
+        </ToggleButton>
+        <ToggleButton value="find" aria-label={t.provider.findTab}>
+          <SearchIcon />
+        </ToggleButton>
+      </ToggleButtonGroup>
       {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
       {notice && <Alert severity="success" sx={{ mt: 2 }}>{notice}</Alert>}
       <Box sx={{ mt: 2 }}>{mode === "mine" ? myCard : findCard}</Box>
@@ -306,6 +341,18 @@ export default function ProvidersScreen() {
           }}
         />
       )}
+      <ConfirmDialog
+        open={revokeFor !== null}
+        title={t.provider.revoke}
+        message={t.provider.revokeConfirm}
+        confirmLabel={t.provider.revoke}
+        cancelLabel={t.common.close}
+        danger
+        busy={revokeBusy}
+        error={revokeError}
+        onClose={() => setRevokeFor(null)}
+        onConfirm={() => void onRevoke()}
+      />
       <Dialog open={reportFor !== null} onClose={() => setReportFor(null)} fullWidth maxWidth="xs">
         <DialogTitle>{t.provider.report}</DialogTitle>
         <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
@@ -367,6 +414,8 @@ function ProviderFormDialog({
 }) {
   const { t } = useStrings();
   const { token } = useAuth();
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const [kind, setKind] = useState<ProviderKind>((provider?.kind as ProviderKind) ?? "SHOP");
   const [name, setName] = useState(provider?.name ?? "");
   const [label, setLabel] = useState(provider?.label ?? "");
@@ -548,7 +597,7 @@ function ProviderFormDialog({
   }
 
   return (
-    <Dialog open onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open onClose={busy ? undefined : onClose} fullWidth maxWidth="sm" fullScreen={fullScreen}>
       <form onSubmit={(e) => void submit(e)}>
         <DialogTitle>{mode === "edit" ? t.provider.edit : t.provider.add}</DialogTitle>
         <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
@@ -564,7 +613,7 @@ function ProviderFormDialog({
           <TextField label={t.provider.name} value={name} onChange={(e) => setName(e.target.value)} required />
           <TextField label={t.provider.addressLabel} value={label} onChange={(e) => setLabel(e.target.value)} />
           <FormSection title={t.provider.sectionLocation} />
-          <Box sx={{ display: "flex", gap: 1 }}>
+          <Box sx={{ display: "flex", gap: 1, flexDirection: { xs: "column", sm: "row" } }}>
             <TextField label="Lat" value={lat} onChange={(e) => setLat(e.target.value)} fullWidth />
             <TextField label="Lng" value={lng} onChange={(e) => setLng(e.target.value)} fullWidth />
           </Box>
@@ -579,11 +628,11 @@ function ProviderFormDialog({
                   <FormSection title={t.provider.sectionBookings} />
                   <FormControlLabel control={<Switch checked={bookingEnabled} onChange={(e) => setBookingEnabled(e.target.checked)} />} label={t.provider.bookingEnabled} />
                   <FormControlLabel control={<Switch checked={bookingAlwaysOpen} onChange={(e) => setBookingAlwaysOpen(e.target.checked)} />} label={t.provider.bookingAlwaysOpen} />
-                  <Box sx={{ display: "flex", gap: 1 }}>
+                  <Box sx={{ display: "flex", gap: 1, flexDirection: { xs: "column", sm: "row" } }}>
                     <TextField label={t.provider.bookingSlotMinutes} type="number" value={bookingSlotMinutes} onChange={(e) => setBookingSlotMinutes(e.target.value)} fullWidth />
                     <TextField label={t.provider.bookingCapacity} type="number" value={bookingCapacity} onChange={(e) => setBookingCapacity(e.target.value)} fullWidth />
                   </Box>
-                  <Box sx={{ display: "flex", gap: 1 }}>
+                  <Box sx={{ display: "flex", gap: 1, flexDirection: { xs: "column", sm: "row" } }}>
                     <TextField label={t.provider.bookingLeadMinutes} type="number" value={bookingLeadMinutes} onChange={(e) => setBookingLeadMinutes(e.target.value)} fullWidth />
                     <TextField label={t.provider.bookingHorizonDays} type="number" value={bookingHorizonDays} onChange={(e) => setBookingHorizonDays(e.target.value)} fullWidth />
                   </Box>
@@ -604,7 +653,7 @@ function ProviderFormDialog({
           )}
           {(kind === "TOW" || provider?.kind === "TOW") && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-              <Box sx={{ display: "flex", gap: 1 }}>
+              <Box sx={{ display: "flex", gap: 1, flexDirection: { xs: "column", sm: "row" } }}>
                 <TextField label={t.provider.towBaseFee} type="number" value={towBaseFee} onChange={(e) => setTowBaseFee(e.target.value)} fullWidth />
                 <TextField label={t.provider.towPerKmFee} type="number" value={towPerKmFee} onChange={(e) => setTowPerKmFee(e.target.value)} fullWidth />
               </Box>
@@ -623,7 +672,7 @@ function ProviderFormDialog({
           )}
           {(kind === "MOBILE_SHOP" || provider?.kind === "MOBILE_SHOP") && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-              <Box sx={{ display: "flex", gap: 1 }}>
+              <Box sx={{ display: "flex", gap: 1, flexDirection: { xs: "column", sm: "row" } }}>
                 <TextField label={t.provider.callOutFee} type="number" value={callOutFee} onChange={(e) => setCallOutFee(e.target.value)} fullWidth />
                 <TextField label={t.provider.travelPerKmFee} type="number" value={travelPerKmFee} onChange={(e) => setTravelPerKmFee(e.target.value)} fullWidth />
               </Box>
