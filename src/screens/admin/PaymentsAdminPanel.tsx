@@ -1,3 +1,4 @@
+import { formatDateTimeDMY } from "../../utils/date";
 import { useEffect, useMemo, useState } from "react";
 import Accordion from "@mui/material/Accordion";
 import AccordionDetails from "@mui/material/AccordionDetails";
@@ -190,7 +191,7 @@ export default function PaymentsAdminPanel({ token }: { token: string | null }) 
                     <Chip size="small" variant="outlined" label={paymentMethodLabel(selected.method)} />
                   </Box>
                   <Typography variant="caption" color="text.secondary">
-                    {`${selected.id} · ${new Date(selected.createdAt).toLocaleString()}`}
+                    {`${selected.id} · ${formatDateTimeDMY(selected.createdAt)}`}
                   </Typography>
                   <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
                     <Typography variant="body2">
@@ -218,12 +219,12 @@ export default function PaymentsAdminPanel({ token }: { token: string | null }) 
                   </Typography>
                   {selected.disputeId ? (
                     <Typography variant="caption" color="text.secondary">
-                      {`${t.admin.disputed}${selected.disputedAt ? ` · ${new Date(selected.disputedAt).toLocaleString()}` : ""}${selected.disputeResolvedAt ? ` · ${t.admin.resolved}` : ""}`}
+                      {`${t.admin.disputed}${selected.disputedAt ? ` · ${formatDateTimeDMY(selected.disputedAt)}` : ""}${selected.disputeResolvedAt ? ` · ${t.admin.resolved}` : ""}`}
                     </Typography>
                   ) : null}
                   {selected.confirmedAt ? (
                     <Typography variant="caption" color="text.secondary">
-                      {`${new Date(selected.confirmedAt).toLocaleString()}`}
+                      {`${formatDateTimeDMY(selected.confirmedAt)}`}
                     </Typography>
                   ) : null}
                   <Button

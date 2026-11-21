@@ -100,10 +100,9 @@ things look like / compute to).
   Roles, an admin-only entry to `/admin`, appearance, language,
   sign-out. Home lives here, not in the bottom tabs (`/route`,
   `/hazards`, `/vehicle`, `/more`); `/` still renders
-  `HomeScreen` and stays the post-login landing. The Assist tab stays in
-  the bottom nav as a disabled "Soon" entry — roadside assistance is
-  mobile-first and lives in the mobile app; the web client no longer
-  calls any `/dispatch/*`, `/ratings`, or `/shops/*` endpoint.
+  `HomeScreen` and stays the post-login landing. The primary Assist tab
+  is Walk-in on web. SOS, mechanic and tow remain mobile-only because
+  they require live location, push and native provider handovers.
 - `components/PlaceField.tsx` — search-first A/B input (MapTiler
   autocomplete + pick-on-map), reused by the planner card.
 - `api/places.ts` — MapTiler forward-geocoding client (Vietnam-filtered)
@@ -111,8 +110,16 @@ things look like / compute to).
 - `screens/AdminScreen.tsx` — `/admin`, gated by `RequireAdmin`
   (`bundle.user.role === "1"`): Users tab (search, role/status/trust
   edits), Flags tab (full queue via `POST /flags/all`, moderation,
-  expiry sweep), Requests and Reports tabs, a Dashboard tab
-  (`POST /admin/dashboard` stat cards with 30/90-day windows), a Payouts tab
+  expiry sweep), Providers tab (the dedicated approval queue with
+  status/kind/date filters, counts, applicant context, license number and an
+  open provider-report card with dismiss/suspend actions; legacy
+  `section=requests` URLs redirect to it), a Dashboard tab
+  (`POST /admin/dashboard` with a sticky range bar using the shared
+  `DateField` (`DD/MM/YYYY` display/input, ISO internally), attention tiles,
+  four comparison KPI cards with sparklines, and URL-backed Overview / Demand /
+  Supply / Money / Bookings / Trust tabs; operations, provider lookup, recent
+  activity and push settings live in a bottom accordion; date charts open a
+  `DayDetailDialog` with tickets/bookings/payments tabs), a Payouts tab
   (pending groups, settle batch, settle cash commission, withdrawal requests
   approve/reject via `/admin/payouts/*`) a Disputes tab
   (`/disputes/all` queue with SHOP/RIDER/PARTIAL resolution), a Reports tab
@@ -195,7 +202,12 @@ The web app now mirrors the mobile app for the non-Assist, browser-safe surface:
 - **Vehicle removal** and tow/ride profile support.
 - **Settings**: persisted theme/language, payment/payout notification preferences, diagnostics screen.
 - **MOBILE_SHOP onboarding** and mobile-shop license/pricing fields.
-- **Assist CTA**: `/dispatch` and the Assist tab link to the GitHub mobile release instead of rendering dispatch UI. Assist remains mobile-only because it depends on native location, background navigation, push and camera flows.
+- **Assist split**: `/dispatch` supports WALK_IN shop selection and ticket lifecycle actions on web. SOS, mechanic and tow actions link to the GitHub mobile release because they depend on live location, background navigation, push, provider handovers and camera/device flows.
+- **Bookings**: `/bookings` is a web-supported workflow for shop search, availability, creation, cancellation, arrival and deposits. Mobile keeps native push and turn-by-turn arrival integrations.
+- **Provider gate**: WALK_IN and booking clients filter to active, approved `SHOP` providers. WALK_IN additionally requires accepting duty and an ASSIST-channel service. Booking additionally requires `bookingEnabled` and compatible BOOKING-channel services.
+- **More parity**: web More exposes account restrictions, appeal/case status, provider duty switches, trust/standing, dashboard, ratings and the browser-safe settings/actions that mobile exposes.
+- **Walk-in lifecycle**: web riders can create WALK_IN tickets, chat with the assigned shop, approve/decline quotes, approve ready-state invoices, cancel supported tickets and open bills. `SOS`, `MECHANIC` and `TOW` remain out of the web dispatch UI.
+- **Provider lifecycle**: SHOP providers manage WALK_IN jobs and bookings through `/provider/jobs` and `/provider/bookings`; they cannot be replaced by TOW or MOBILE_SHOP providers in these workflows.
 
 Public mobile release link:
 

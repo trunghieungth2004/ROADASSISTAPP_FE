@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
-import AssignmentIcon from "@mui/icons-material/Assignment";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import BugReportIcon from "@mui/icons-material/BugReport";
 import FlagIcon from "@mui/icons-material/Flag";
@@ -12,6 +11,7 @@ import PaymentsIcon from "@mui/icons-material/Payments";
 import PeopleIcon from "@mui/icons-material/People";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import SettingsIcon from "@mui/icons-material/Settings";
+import StorefrontIcon from "@mui/icons-material/Storefront";
 import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
@@ -40,7 +40,7 @@ import PayoutsPanel from "./admin/PayoutsPanel";
 import RefundsPanel from "./admin/RefundsPanel";
 
 
-import RequestsPanel from "./admin/RequestsPanel";
+import ProvidersPanel from "./admin/ProvidersPanel";
 import SupportAdminPanel from "./admin/SupportAdminPanel";
 import TicketsPanel from "./admin/TicketsPanel";
 import CasesPanel from "./admin/CasesPanel";
@@ -53,6 +53,7 @@ type SectionId =
   | "dashboard"
   | "users"
   | "flags"
+  | "providers"
   | "requests"
   | "tickets"
   | "cases"
@@ -75,7 +76,8 @@ function AdminShell() {
   const { token, signOut } = useAuth();
   const { showToast } = useAdminToast();
   const [searchParams, setSearchParams] = useSearchParams();
-  const section = (searchParams.get("section") as SectionId | null) ?? "dashboard";
+  const rawSection = (searchParams.get("section") as SectionId | null) ?? "dashboard";
+  const section = rawSection === "requests" ? "providers" : rawSection;
   const caseKind = searchParams.get("kind") ?? "ALL";
   const selectSection = useCallback((next: string, kind?: string) => {
     const params = new URLSearchParams(searchParams);
@@ -133,8 +135,8 @@ function AdminShell() {
     setCountsError(false);
     void Promise.all([
       fetchPendingProviders(token)
-        .then((rows) => ({ key: "requests", value: rows.length }))
-        .catch(() => ({ key: "requests", value: null })),
+        .then((rows) => ({ key: "providers", value: rows.length }))
+        .catch(() => ({ key: "providers", value: null })),
       adminReports(token, undefined, "OPEN")
         .then((result) => ({ key: "reports", value: result.reports.length }))
         .catch(() => ({ key: "reports", value: null })),
@@ -184,7 +186,7 @@ function AdminShell() {
         { id: "dashboard", label: t.admin.dashboard, icon: <DashboardIcon fontSize="small" /> },
         { id: "users", label: t.admin.users, icon: <PeopleIcon fontSize="small" /> },
         { id: "flags", label: t.admin.flags, icon: <FlagIcon fontSize="small" /> },
-        { id: "requests", label: t.admin.requests, icon: <AssignmentIcon fontSize="small" /> },
+        { id: "providers", label: t.admin.providerApprovals, icon: <StorefrontIcon fontSize="small" /> },
         { id: "tickets", label: t.admin.tickets, icon: <ConfirmationNumberIcon fontSize="small" /> },
         { id: "cases", label: t.admin.cases, icon: <GavelIcon fontSize="small" /> },
       ],
@@ -240,7 +242,7 @@ function AdminShell() {
         ) : null}
         {section === "users" ? <UsersPanel token={token} /> : null}
         {section === "flags" ? <FlagsPanel token={token} /> : null}
-        {section === "requests" ? <RequestsPanel token={token} /> : null}
+        {section === "providers" ? <ProvidersPanel token={token} /> : null}
         {section === "tickets" ? <TicketsPanel token={token} /> : null}
         {section === "cases" ? <CasesPanel token={token} initialKind={caseKind} /> : null}
         {section === "reports" ? <CasesPanel token={token} initialKind="REPORT" /> : null}

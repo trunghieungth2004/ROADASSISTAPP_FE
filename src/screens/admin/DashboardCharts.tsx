@@ -2,6 +2,7 @@ import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
+import { formatDateDMY } from "../../utils/date";
 
 type Series = { key: string; label: string; color: string };
 
@@ -53,12 +54,14 @@ export function LineChart({
   data,
   series,
   format,
+  onSelectDate,
 }: {
   title: string;
   subtitle?: string;
   data: Array<{ date: string; values: Record<string, number> }>;
   series: Series[];
   format: (value: number) => string;
+  onSelectDate?: (date: string) => void;
 }) {
   const max = maxOf(data.map((row) => row.values), series);
   const width = 600;
@@ -108,11 +111,29 @@ export function LineChart({
               const [x, y] = point(data.length - 1, last.values[item.key] ?? 0);
               return <circle key={item.key} cx={x} cy={y} r="3" fill={item.color} />;
             })}
+            {onSelectDate ? data.map((row, index) => {
+              const hitWidth = data.length <= 1 ? innerW : innerW / (data.length - 1);
+              const [cx] = point(index, 0);
+              const x = Math.max(left, cx - hitWidth / 2);
+              const width = Math.min(innerW, hitWidth);
+              return (
+                <rect
+                  key={`hit-${row.date}`}
+                  x={x}
+                  y={top}
+                  width={width}
+                  height={innerH}
+                  fill="transparent"
+                  style={{ cursor: "pointer" }}
+                  onClick={() => onSelectDate(row.date)}
+                />
+              );
+            }) : null}
             <text x={left} y={height - 6} fontSize="10" fill="#737373">
-              {data[0]?.date ?? ""}
+              {formatDateDMY(data[0]?.date ?? "")}
             </text>
             <text x={width - right} y={height - 6} fontSize="10" fill="#737373" textAnchor="end">
-              {data[data.length - 1]?.date ?? ""}
+              {formatDateDMY(data[data.length - 1]?.date ?? "")}
             </text>
             <text x={left} y={top - 2} fontSize="10" fill="#737373">
               {format(max)}
@@ -132,11 +153,13 @@ export function BarChart({
   subtitle,
   data,
   series,
+  onSelectDate,
 }: {
   title: string;
   subtitle?: string;
-  data: Array<{ label: string; values: Record<string, number> }>;
+  data: Array<{ label: string; values: Record<string, number>; date?: string }>;
   series: Series[];
+  onSelectDate?: (date: string) => void;
 }) {
   const max = maxOf(data.map((row) => row.values), series);
   const width = 600;
@@ -183,6 +206,17 @@ export function BarChart({
                   />
                 );
               })}
+              {onSelectDate && row.date ? (
+                <rect
+                  x={left + groupW * index}
+                  y={top}
+                  width={groupW}
+                  height={innerH}
+                  fill="transparent"
+                  style={{ cursor: "pointer" }}
+                  onClick={() => onSelectDate(row.date as string)}
+                />
+              ) : null}
             </g>
           ))}
           {data.length <= 8 ? data.map((row, index) => (
@@ -235,5 +269,33 @@ export function BarList({
         ))}
       </Box>
     </ChartCard>
+  );
+}
+
+export function Sparkline({
+  values,
+  color,
+  height = 40,
+}: {
+  values: number[];
+  color: string;
+  height?: number;
+}) {
+  const max = Math.max(1, ...values);
+  const width = 160;
+  const step = values.length > 1 ? width / (values.length - 1) : width;
+  const points = values.map((value, index) =>
+    `${index * step},${height - (value / max) * (height - 4)}`).join(" ");
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", height }}>
+      <polyline
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        points={points}
+      />
+    </svg>
   );
 }

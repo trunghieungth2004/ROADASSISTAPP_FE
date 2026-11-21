@@ -1,3 +1,4 @@
+import { formatDateDMY } from "../../utils/date";
 import { useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -75,7 +76,7 @@ function PersonCard({
       ) : null}
       {person.restrictedUntil ? (
         <Typography variant="caption" color="error.main">
-          {`${t.admin.restrictedUntil}: ${new Date(person.restrictedUntil).toLocaleDateString()}${person.restrictionReason ? ` · ${person.restrictionReason}` : ""}`}
+          {`${t.admin.restrictedUntil}: ${formatDateDMY(person.restrictedUntil)}${person.restrictionReason ? ` · ${person.restrictionReason}` : ""}`}
         </Typography>
       ) : null}
     </Box>

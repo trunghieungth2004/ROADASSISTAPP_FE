@@ -30,14 +30,17 @@ describe("rider ticket actions", () => {
 
   it("resolves shop and SOS tickets at ready", () => {
     expect(canResolveRider("SOS", "7")).toBe(true);
-    expect(canResolveRider("WALK_IN", "7")).toBe(true);
+    expect(canResolveRider("WALK_IN", "7")).toBe(false);
     expect(canResolveRider("TOW", "7")).toBe(false);
   });
 
   it("combines actions by status", () => {
     expect(riderActions("SOS", "9")).toEqual(["cancel", "approve", "decline"]);
     expect(riderActions("SOS", "7")).toEqual(["resolve"]);
-    expect(riderActions("WALK_IN", "7")).toEqual(["cancel", "resolve"]);
+    expect(riderActions("WALK_IN", "7")).toEqual([
+      "cancel",
+      "approveInvoice",
+    ]);
     expect(riderActions("TOW", "4")).toEqual([]);
   });
 

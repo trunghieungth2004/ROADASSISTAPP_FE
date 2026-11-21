@@ -1,3 +1,4 @@
+import { formatDateTimeDMY } from "../utils/date";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Alert from "@mui/material/Alert";
@@ -70,11 +71,11 @@ export default function TrackingScreen() {
             )}
             {data.updatedAt && (
               <Typography variant="caption" color="text.secondary">
-                {t.tracking.updated}: {new Date(data.updatedAt).toLocaleString()}
+                {t.tracking.updated}: {formatDateTimeDMY(data.updatedAt)}
               </Typography>
             )}
             <Typography variant="caption" color="text.secondary">
-              {t.tracking.expires}: {new Date(data.expiresAt).toLocaleString()}
+              {t.tracking.expires}: {formatDateTimeDMY(data.expiresAt)}
             </Typography>
             <Box
               sx={{

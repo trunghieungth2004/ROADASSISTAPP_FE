@@ -1,3 +1,4 @@
+import { formatDateTimeDMY } from "../../utils/date";
 import { useEffect, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -318,7 +319,7 @@ export default function PayoutsPanel({ token }: { token: string | null }) {
                   <Chip size="small" label={adminStatusLabel(selectedBatch.status, t)} color={adminStatusTone(selectedBatch.status)} />
                 </Box>
                 <Typography variant="body2" color="text.secondary">
-                  {`${t.admin.batchRef}: ${selectedBatch.payoutRef || selectedBatch.id} · ${new Date(selectedBatch.batchedAt).toLocaleString()}`}
+                  {`${t.admin.batchRef}: ${selectedBatch.payoutRef || selectedBatch.id} · ${formatDateTimeDMY(selectedBatch.batchedAt)}`}
                 </Typography>
                 <Typography variant="body2">
                   {`${t.admin.gross}: ${money(selectedBatch.gross)} · ${t.admin.platformRevenue}: ${money(selectedBatch.commission)}`}

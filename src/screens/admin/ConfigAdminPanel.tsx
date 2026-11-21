@@ -1,3 +1,4 @@
+import { formatDateTimeDMY } from "../../utils/date";
 import { useEffect, useMemo, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -100,7 +101,7 @@ export default function ConfigAdminPanel({ token }: { token: string | null }) {
     setErrors({});
     setSavedLine(
       [
-        configRow.updatedAt ? new Date(configRow.updatedAt).toLocaleString() : "",
+        configRow.updatedAt ? formatDateTimeDMY(configRow.updatedAt) : "",
         configRow.updatedBy ?? "",
       ]
         .filter((part) => part !== "")

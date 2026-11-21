@@ -1,3 +1,4 @@
+import { formatDateTimeDMY } from "../utils/date";
 import { useCallback, useEffect, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -135,7 +136,7 @@ export default function SupportScreen() {
               ) : null}
               <Typography variant="body2">{ticket.message}</Typography>
               <Typography variant="caption" color="text.secondary">
-                {new Date(ticket.createdAt).toLocaleString()}
+                {formatDateTimeDMY(ticket.createdAt)}
               </Typography>
               {ticket.answer ? (
                 <Alert severity="info">

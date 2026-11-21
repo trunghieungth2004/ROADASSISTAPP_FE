@@ -64,14 +64,23 @@ export default function BookingScreen() {
       const rows = search.trim() === "" ?
         await nearProviders(point.lat, point.lng, token, {
           kind: "SHOP",
-          radiusMeters: 30000,
-          limit: 50,
+          radiusMeters: 20000,
+          limit: 20,
+          acceptingOnly: true,
+          ...(activeVehicle?.type === "CAR"
+            ? { vehicleClass: "CAR" as const }
+            : { vehicleClass: "SOLO_BIKE" as const }),
         }) :
         await searchProviders(point.lat, point.lng, search.trim(), token, {
           kind: "SHOP",
-          limit: 50,
+          limit: 20,
+          acceptingOnly: true,
+          ...(activeVehicle?.type === "CAR"
+            ? { vehicleClass: "CAR" as const }
+            : { vehicleClass: "SOLO_BIKE" as const }),
         });
       setShops(rows.filter((provider) =>
+        provider.kind === "SHOP" &&
         provider.status === "ACTIVE" &&
         provider.suspended !== true &&
         provider.bookingEnabled === true));

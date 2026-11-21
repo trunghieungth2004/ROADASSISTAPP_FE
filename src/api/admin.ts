@@ -1,9 +1,133 @@
 import { api } from "./client";
 import { config } from "../config";
 
+export type AdminServiceUsage = {
+  key: string;
+  name: string;
+  category: string | null;
+  count: number;
+  revenue: number;
+};
+
+export type AdminServiceMix = {
+  total: number;
+  byType: Record<string, number>;
+  byCategory: Record<string, number>;
+  services: AdminServiceUsage[];
+  topService: {
+    key: string;
+    name: string;
+    count: number;
+    kind: "TYPE" | "SERVICE";
+  } | null;
+};
+
+export type AdminBookingSummary = {
+  total: number;
+  active: number;
+  completed: number;
+  cancelled: number;
+  declined: number;
+  noShow: number;
+  byStatus: Record<string, number>;
+  byService: Array<{ key: string; name: string; count: number }>;
+};
+
+export type AdminDashboardDayTicket = {
+  id: string;
+  ticketType: string;
+  status: string;
+  createdAt: string | null;
+  riderId: string;
+  riderName: string | null;
+  providerId: string | null;
+  providerName: string | null;
+  providerKind: string | null;
+  paymentStatus: string | null;
+  amount: number | null;
+  description: string | null;
+  symptom: string | null;
+};
+
+export type AdminDashboardDayBooking = {
+  id: string;
+  status: string;
+  scheduledAt: string | null;
+  providerId: string;
+  providerName: string | null;
+  serviceNames: string[];
+  depositAmount: number;
+  note: string | null;
+};
+
+export type AdminDashboardDayPayment = {
+  id: string;
+  ticketId: string;
+  amount: number;
+  commissionAmount: number;
+  status: string;
+  method: string;
+  createdAt: string | null;
+  confirmedAt: string | null;
+};
+
+export type AdminDashboardDay = {
+  date: string;
+  totals: {
+    tickets: number;
+    completed: number;
+    bookings: number;
+    gross: number;
+    commission: number;
+  };
+  tickets: AdminDashboardDayTicket[];
+  bookings: AdminDashboardDayBooking[];
+  payments: AdminDashboardDayPayment[];
+};
+
+export function adminDashboardDay(token: string, date: string): Promise<AdminDashboardDay> {
+  return api.post<AdminDashboardDay>("/admin/dashboard/day", { date }, token);
+}
+
 export type AdminDashboard = {
   windowDays: number;
+  days: number;
+  startDate: string;
+  endDate: string;
   from: string;
+  to: string;
+  generatedAt?: string;
+  comparison?: {
+    startDate: string;
+    endDate: string;
+    current: {
+      gross: number;
+      commission: number;
+      net: number;
+      tickets: number;
+      completed: number;
+      bookings: number;
+      bookingsCompleted: number;
+    };
+    previous: {
+      gross: number;
+      commission: number;
+      net: number;
+      tickets: number;
+      completed: number;
+      bookings: number;
+      bookingsCompleted: number;
+    };
+    change: {
+      gross: number;
+      commission: number;
+      net: number;
+      tickets: number;
+      completed: number;
+      bookings: number;
+      bookingsCompleted: number;
+    };
+  };
   users: { total: number; active: number; admins: number };
   providers: {
     total: number;
@@ -15,6 +139,7 @@ export type AdminDashboard = {
   tickets: {
     total: number;
     active: number;
+    completed: number;
     matched: number;
     matchRate: number;
     avgAcceptMinutes: number | null;
@@ -35,6 +160,8 @@ export type AdminDashboard = {
     byStatus: Record<string, number>;
   };
   flags: { total: number; recent7d: number; byStatus: Record<string, number> };
+  bookings: AdminBookingSummary;
+  services: AdminServiceMix;
   series?: {
     daily: Array<{
       date: string;
@@ -44,6 +171,7 @@ export type AdminDashboard = {
       refunds: number;
       payments: number;
       tickets: number;
+      bookings: number;
       users: number;
       providers: number;
       cases: number;
@@ -214,8 +342,18 @@ export type AdminDispute = {
   context?: AdminDisputeContext;
 };
 
-export function adminDashboard(token: string, days?: number): Promise<AdminDashboard> {
-  return api.post<AdminDashboard>("/admin/dashboard", typeof days === "number" ? { days } : {}, token);
+export type AdminDashboardRange = {
+  days?: number;
+  startDate?: string;
+  endDate?: string;
+};
+
+export function adminDashboard(
+  token: string,
+  range?: number | AdminDashboardRange,
+): Promise<AdminDashboard> {
+  const body = typeof range === "number" ? { days: range } : range ?? {};
+  return api.post<AdminDashboard>("/admin/dashboard", body, token);
 }
 
 export function adminPendingPayouts(token: string): Promise<AdminPayeeGroup[]> {

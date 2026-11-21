@@ -1,3 +1,4 @@
+import { formatDateTimeDMY } from "../../utils/date";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Alert from "@mui/material/Alert";
@@ -25,7 +26,7 @@ import {
 
 function whenLabel(value: string): string {
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? value : formatDateTimeDMY(date);
 }
 
 function isUpcoming(booking: Booking): boolean {

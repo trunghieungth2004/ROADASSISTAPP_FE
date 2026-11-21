@@ -11,6 +11,7 @@ import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
+import DateField from "../../components/DateField";
 import { toMessage } from "../../api/client";
 import {
   createBooking,
@@ -102,6 +103,17 @@ export default function BookingComposer({
 
   async function submit(): Promise<void> {
     if (busy) return;
+    if (shop.kind !== "SHOP" ||
+      shop.status !== "ACTIVE" ||
+      shop.suspended === true ||
+      shop.bookingEnabled !== true) {
+      setError(t.bookings.noShops);
+      return;
+    }
+    if (availability === null || loading) {
+      setError(t.common.loading);
+      return;
+    }
     if (!activeVehicle) {
       setError(t.bookings.noVehicle);
       return;
@@ -112,6 +124,21 @@ export default function BookingComposer({
     }
     if (scheduledAt === "") {
       setError(t.bookings.invalidTime);
+      return;
+    }
+    const scheduled = new Date(scheduledAt);
+    if (Number.isNaN(scheduled.getTime())) {
+      setError(t.bookings.invalidTime);
+      return;
+    }
+    const validServices = new Set(
+      services
+        .filter((service) =>
+          !service.channels || service.channels.includes("BOOKING"))
+        .map((service) => service.code),
+    );
+    if (serviceCodes.some((code) => !validServices.has(code))) {
+      setError(t.bookings.noShops);
       return;
     }
     setBusy(true);
@@ -150,12 +177,10 @@ export default function BookingComposer({
         {!activeVehicle ? (
           <Alert severity="warning">{t.bookings.noVehicle}</Alert>
         ) : null}
-        <TextField
+        <DateField
           label={t.bookings.pickDate}
-          type="date"
           value={date}
-          onChange={(event) => setDate(event.target.value)}
-          slotProps={{ inputLabel: { shrink: true } }}
+          onChange={setDate}
         />
         {loading ? <Typography variant="body2" color="text.secondary">{t.common.loading}</Typography> : null}
         {!loading && availability !== null && !freeForm && availability.slots.length === 0 ? (

@@ -93,7 +93,11 @@ Token freshness: the context subscribes with `onIdTokenChanged` (not `onAuthStat
 
 Admin sections use confirm dialogs for money and moderation decisions, required reasons for denials/suspensions, masked bank accounts, and pending-count badges in the sidebar. FE-only beyond the mobile app: route planning, saved routes, bills, warranty claims, provider configuration, support, diagnostics, and the admin console.
 
-Roadside assistance (`/dispatch`) is intentionally **mobile-only**. The Assist tab and `/dispatch` screen show download links for the RoadAssist mobile app on GitHub instead of calling `/dispatch/*` from the web. The mobile app handles SOS, mechanic, walk-in, tow, provider radars and jobs.
+Roadside assistance is split by workflow. `/dispatch` supports **WALK_IN** requests and ticket management on the web. WALK_IN providers must be active, approved `SHOP` providers that accept assistance and expose compatible ASSIST-channel services. SOS, mechanic and tow requests are intentionally **mobile-only** because they require live location, push, background navigation and provider handovers. The web screen explains this split and provides the mobile download.
+
+Shop bookings are supported on both platforms. The web supports booking search, availability, creation, cancellation, arrival and deposit/payment actions only for active, approved `SHOP` providers with bookings enabled. The mobile app additionally provides native booking pushes and turn-by-turn arrival flows.
+
+The web More screen exposes restriction, appeal/case, trust/standing, dashboard and provider duty controls. Walk-in riders can chat with the shop, approve or decline quotes, approve ready-state invoices and open bills. Shop operators can manage walk-in jobs and shop bookings from the dedicated provider screens.
 
 Mobile download: <https://github.com/trunghieungth2004/ROADASSISTAPP_MOBILE/releases/latest>
 

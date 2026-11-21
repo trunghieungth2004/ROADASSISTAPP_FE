@@ -1,3 +1,4 @@
+import { formatDateTimeDMY } from "../../utils/date";
 import { useEffect, useMemo, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -138,7 +139,7 @@ export default function TicketsPanel({ token }: { token: string | null }) {
                   {selected.description ? <Typography variant="body2" color="text.secondary">{selected.description}</Typography> : null}
                   <TicketTimeline history={selected.statusHistory} t={t} />
                   <Typography variant="caption" color="text.secondary">
-                    {`${t.admin.createdAt}: ${selected.createdAt ? new Date(selected.createdAt).toLocaleString() : "—"}`}
+                    {`${t.admin.createdAt}: ${selected.createdAt ? formatDateTimeDMY(selected.createdAt) : "—"}`}
                   </Typography>
                   <Button size="small" variant="outlined" sx={{ alignSelf: "flex-start" }} onClick={() => openBill(selected.id)}>
                     {t.admin.viewBill}

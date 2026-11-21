@@ -100,7 +100,7 @@ export default function AdminGlobalSearch({
               <ResultRow
                 key={`p-${provider.id}`}
                 label={`PROVIDER · ${provider.name} · ${humanizeEnum(provider.kind)} · ${adminStatusLabel(provider.status, t)}${provider.plate ? ` · ${provider.plate}` : ""}`}
-                onClick={() => onOpenSection("requests")}
+                onClick={() => onOpenSection("providers")}
               />
             ))}
             {results.tickets.map((ticket) => (

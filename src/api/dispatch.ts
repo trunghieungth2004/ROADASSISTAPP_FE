@@ -245,6 +245,17 @@ export function declineQuote(
   );
 }
 
+export function approveInvoice(
+  ticketId: string,
+  token: string,
+): Promise<{ approved: boolean }> {
+  return api.post<{ approved: boolean }>(
+    "/dispatch/invoice/approve",
+    { ticketId },
+    token,
+  );
+}
+
 export function approveMobileFix(
   ticketId: string,
   token: string,

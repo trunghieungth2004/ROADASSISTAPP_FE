@@ -1,3 +1,4 @@
+import { formatDateTimeDMY } from "../../utils/date";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Alert from "@mui/material/Alert";
@@ -10,6 +11,7 @@ import LinearProgress from "@mui/material/LinearProgress";
 import Typography from "@mui/material/Typography";
 import { toMessage } from "../../api/client";
 import {
+  approveInvoice,
   approveMobileFix,
   approveQuote,
   cancelTicket,
@@ -20,6 +22,7 @@ import {
   type RiderTicket,
 } from "../../api/dispatch";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
+import ChatDialog from "../../components/ChatDialog";
 import type { Strings } from "../../i18n";
 import {
   canApproveRiderQuote,
@@ -33,7 +36,7 @@ import {
 function whenLabel(value: string | null | undefined): string {
   if (!value) return "";
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "" : date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? "" : formatDateTimeDMY(date);
 }
 
 export default function AssistTicketsPanel({
@@ -53,6 +56,7 @@ export default function AssistTicketsPanel({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [cancelFor, setCancelFor] = useState<RiderTicket | null>(null);
   const [declineFor, setDeclineFor] = useState<RiderTicket | null>(null);
+  const [chatFor, setChatFor] = useState<RiderTicket | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -79,8 +83,10 @@ export default function AssistTicketsPanel({
   }, [load]);
 
   const groups = useMemo(() => ({
-    active: rows.filter((row) => !isTerminalStatus(row.status)),
-    history: rows.filter((row) => isTerminalStatus(row.status)),
+    active: rows.filter((row) =>
+      row.ticketType === "WALK_IN" && !isTerminalStatus(row.status)),
+    history: rows.filter((row) =>
+      row.ticketType === "WALK_IN" && isTerminalStatus(row.status)),
   }), [rows]);
 
   async function cancel(): Promise<void> {
@@ -155,6 +161,21 @@ export default function AssistTicketsPanel({
     }
   }
 
+  async function approveFinalInvoice(ticket: RiderTicket): Promise<void> {
+    if (busyId !== null) return;
+    setBusyId(ticket.id);
+    setError(null);
+    try {
+      await approveInvoice(ticket.id, token);
+      setNotice(t.assist.quoteApproved);
+      await load();
+    } catch (err) {
+      setError(toMessage(err));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   function card(ticket: RiderTicket) {
     const actions = riderActions(ticket.ticketType, ticket.status);
     const shop = ticket.providerSnapshot?.name ??
@@ -192,6 +213,7 @@ export default function AssistTicketsPanel({
           ) : null}
           <Typography variant="caption" color="text.secondary">{whenLabel(ticket.createdAt)}</Typography>
           <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", flexWrap: "wrap", mt: 1 }}>
+            <Button onClick={() => setChatFor(ticket)}>{t.chat.title}</Button>
             {isTerminalStatus(ticket.status) || ticket.status === "7" ? (
               <Button onClick={() => navigate(`/bills/${ticket.id}`)}>{t.bookings.openBill}</Button>
             ) : null}
@@ -208,6 +230,11 @@ export default function AssistTicketsPanel({
             {actions.includes("resolve") ? (
               <Button variant="contained" color="success" onClick={() => void resolve(ticket)} disabled={busyId !== null}>
                 {t.assist.resolve}
+              </Button>
+            ) : null}
+            {actions.includes("approveInvoice") ? (
+              <Button variant="contained" color="success" onClick={() => void approveFinalInvoice(ticket)} disabled={busyId !== null}>
+                {t.assist.approveQuote}
               </Button>
             ) : null}
             {actions.includes("cancel") ? (
@@ -238,6 +265,14 @@ export default function AssistTicketsPanel({
           <Typography variant="overline" color="text.secondary" sx={{ mt: 1 }}>{t.assist.history}</Typography>
           {groups.history.map(card)}
         </>
+      ) : null}
+      {chatFor ? (
+        <ChatDialog
+          scope="TICKET"
+          refId={chatFor.id}
+          title={`${ticketTypeLabel(chatFor.ticketType, t)} · #${chatFor.id.slice(-6)}`}
+          onClose={() => setChatFor(null)}
+        />
       ) : null}
       <ConfirmDialog
         open={cancelFor !== null}

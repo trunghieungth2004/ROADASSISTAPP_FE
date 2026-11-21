@@ -1,7 +1,12 @@
 import type { Strings } from "../../i18n";
 import type { StatusColor } from "../booking/bookingLabels";
 
-export type RiderAction = "cancel" | "approve" | "decline" | "resolve";
+export type RiderAction =
+  | "cancel"
+  | "approve"
+  | "decline"
+  | "resolve"
+  | "approveInvoice";
 
 const TERMINAL = new Set(["4", "5", "8", "12", "15"]);
 const CANCELABLE = new Set([
@@ -28,10 +33,17 @@ export function canApproveRiderQuote(
   ticketType: string,
   status: string,
 ): boolean {
-  return status === "9" &&
+  return (status === "9" || status === "11") &&
     (ticketType === "SOS" ||
       ticketType === "WALK_IN" ||
       ticketType === "MECHANIC");
+}
+
+export function canApproveRiderInvoice(
+  ticketType: string,
+  status: string,
+): boolean {
+  return status === "7" && ticketType === "WALK_IN";
 }
 
 export function canResolveRider(
@@ -39,9 +51,7 @@ export function canResolveRider(
   status: string,
 ): boolean {
   return status === "7" &&
-    (ticketType === "SOS" ||
-      ticketType === "WALK_IN" ||
-      ticketType === "MECHANIC");
+    (ticketType === "SOS" || ticketType === "MECHANIC");
 }
 
 export function riderActions(
@@ -52,6 +62,9 @@ export function riderActions(
   if (canRiderCancel(ticketType, status)) actions.push("cancel");
   if (canApproveRiderQuote(ticketType, status)) {
     actions.push("approve", "decline");
+  }
+  if (canApproveRiderInvoice(ticketType, status)) {
+    actions.push("approveInvoice");
   }
   if (canResolveRider(ticketType, status)) actions.push("resolve");
   return actions;

@@ -6,10 +6,15 @@ import Typography from "@mui/material/Typography";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
+import DownloadIcon from "@mui/icons-material/Download";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
 import Screen from "../components/ui/Screen";
 import { useAuth } from "../context/AuthContext";
 import { useProfile } from "../context/ProfileContext";
 import { useStrings } from "../context/LanguageContext";
+import { MOBILE_RELEASES_URL } from "../config/mobileLinks";
+import { mapDefaults } from "../map/style";
 import AssistRequestForm from "./assist/AssistRequestForm";
 import AssistTicketsPanel from "./assist/AssistTicketsPanel";
 
@@ -18,7 +23,10 @@ export default function AssistScreen() {
   const { token } = useAuth();
   const { activeVehicle } = useProfile();
   const [tab, setTab] = useState<"request" | "mine">("request");
-  const [point, setPoint] = useState<{ lat: number; lng: number } | null>(null);
+  const [point, setPoint] = useState<{ lat: number; lng: number }>({
+    lat: mapDefaults.center[1],
+    lng: mapDefaults.center[0],
+  });
   const [locationError, setLocationError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -48,10 +56,29 @@ export default function AssistScreen() {
 
   return (
     <Screen maxWidth="lg">
-      <Typography variant="h5">{t.assist.title}</Typography>
+      <Typography variant="h5">{t.assist.walkInTitle}</Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-        {t.assist.screenHint}
+        {t.assist.walkInScreenHint}
       </Typography>
+      <Card variant="outlined" sx={{ mt: 2 }}>
+        <CardContent sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+          <Box sx={{ flexGrow: 1, minWidth: 220 }}>
+            <Typography sx={{ fontWeight: 700 }}>{t.assist.mobileOnlyTitle}</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {t.assist.mobileOnlyBody}
+            </Typography>
+          </Box>
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            href={MOBILE_RELEASES_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t.assist.mobileOnlyCta}
+          </Button>
+        </CardContent>
+      </Card>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 2, flexWrap: "wrap" }}>
         <ToggleButtonGroup
           exclusive

@@ -1,3 +1,4 @@
+import { formatDateDMY, formatDateTimeDMY } from "../../utils/date";
 import { useEffect, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -106,7 +107,7 @@ function BillItemCard({ item }: { item: BillItem }) {
       ) : null}
       {item.warrantyUntil ? (
         <Typography variant="caption" color="success.main">
-          {`${t.bills.warranty}: ${new Date(item.warrantyUntil).toLocaleDateString()}`}
+          {`${t.bills.warranty}: ${formatDateDMY(item.warrantyUntil)}`}
         </Typography>
       ) : null}
     </Box>
@@ -183,7 +184,7 @@ export default function AdminBillDialog({
             <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
               <Typography variant="subtitle2">{`${bill.ticketType} · ${bill.billId}`}</Typography>
               <Typography variant="caption" color="text.secondary">
-                {bill.createdAt ? new Date(bill.createdAt).toLocaleString() : ""}
+                {bill.createdAt ? formatDateTimeDMY(bill.createdAt) : ""}
               </Typography>
               <Line label={t.bills.total} value={money(bill.total)} />
               <Line label={t.bills.paid} value={money(bill.paid)} />

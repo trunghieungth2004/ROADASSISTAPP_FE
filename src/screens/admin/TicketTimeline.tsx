@@ -1,3 +1,4 @@
+import { formatDateTimeDMY } from "../../utils/date";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import type { AdminTicketTimelineEntry } from "../../api/admin";
@@ -43,7 +44,7 @@ export default function TicketTimeline({
                   {ticketStatusLabel(entry.status, t)}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {at.toLocaleString()}
+                  {formatDateTimeDMY(at)}
                   {delta !== null
                     ? ` · ${t.admin.timelineDelta.replace("{n}", String(delta))}`
                     : ""}

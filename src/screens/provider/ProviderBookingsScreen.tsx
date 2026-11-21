@@ -1,3 +1,4 @@
+import { formatDateTimeDMY } from "../../utils/date";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import Alert from "@mui/material/Alert";
@@ -33,7 +34,7 @@ import useMyShops from "./useMyShops";
 
 function whenLabel(value: string): string {
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? value : formatDateTimeDMY(date);
 }
 
 function BookingCard({

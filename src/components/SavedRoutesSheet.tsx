@@ -1,3 +1,4 @@
+import { formatDateDMY } from "../utils/date";
 import { useEffect, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -191,7 +192,7 @@ export default function SavedRoutesSheet({
                         `${(r.durationSeconds / 60).toFixed(r.durationSeconds < 600 ? 1 : 0)} min · `}
                       {r.stops.length > 0 &&
                         `${r.stops.length} stops · `}
-                      {new Date(r.createdAt).toLocaleDateString()}
+                      {formatDateDMY(r.createdAt)}
                     </Typography>
                   </Box>
                   <Button

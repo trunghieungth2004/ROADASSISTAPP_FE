@@ -1,3 +1,4 @@
+import { formatDateDMY } from "../utils/date";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Alert from "@mui/material/Alert";
@@ -116,7 +117,7 @@ export default function SavedScreen() {
                 {r.durationSeconds != null &&
                   `${(r.durationSeconds / 60).toFixed(r.durationSeconds < 600 ? 1 : 0)} min · `}
                 {r.stops.length > 0 && `${r.stops.length} stops · `}
-                {new Date(r.createdAt).toLocaleDateString()}
+                {formatDateDMY(r.createdAt)}
               </Typography>
               <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
                 <Button

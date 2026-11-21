@@ -2,10 +2,10 @@ import { useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import TextField from "@mui/material/TextField";
 import { toMessage } from "../../api/client";
 import { downloadReport } from "../../api/admin";
 import { useStrings } from "../../context/LanguageContext";
+import DateField from "../../components/DateField";
 import PanelHeader from "./PanelHeader";
 import SettingField from "./SettingField";
 
@@ -52,23 +52,19 @@ export default function FinancialsPanel({ token }: { token: string | null }) {
       <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, maxWidth: 520 }}>
           <SettingField label={t.admin.fromDate}>
-            <TextField
-              size="small"
-              type="date"
-              fullWidth
+            <DateField
+              label={t.admin.fromDate}
               value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              slotProps={{ inputLabel: { shrink: true } }}
+              onChange={setFrom}
+              fullWidth
             />
           </SettingField>
           <SettingField label={t.admin.toDate}>
-            <TextField
-              size="small"
-              type="date"
-              fullWidth
+            <DateField
+              label={t.admin.toDate}
               value={to}
-              onChange={(e) => setTo(e.target.value)}
-              slotProps={{ inputLabel: { shrink: true } }}
+              onChange={setTo}
+              fullWidth
             />
           </SettingField>
         </Box>

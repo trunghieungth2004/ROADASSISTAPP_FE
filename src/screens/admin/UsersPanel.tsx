@@ -1,3 +1,4 @@
+import { formatDateDMY } from "../../utils/date";
 import { useEffect, useMemo, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -284,7 +285,7 @@ export default function UsersPanel({ token }: { token: string | null }) {
                   <Chip
                     size="small"
                     variant="outlined"
-                    label={`${t.admin.joined}: ${selected.createdAt ? new Date(selected.createdAt).toLocaleDateString() : "—"}`}
+                    label={`${t.admin.joined}: ${selected.createdAt ? formatDateDMY(selected.createdAt) : "—"}`}
                   />
                   <Chip
                     size="small"
@@ -307,7 +308,7 @@ export default function UsersPanel({ token }: { token: string | null }) {
                     <Chip
                       size="small"
                       color="error"
-                      label={`${t.admin.restrictedUntil}: ${selected.restrictedUntil ? new Date(selected.restrictedUntil).toLocaleDateString() : "—"}`}
+                      label={`${t.admin.restrictedUntil}: ${selected.restrictedUntil ? formatDateDMY(selected.restrictedUntil) : "—"}`}
                     />
                   ) : null}
                   {selected.conductFlag ? (
@@ -360,7 +361,7 @@ export default function UsersPanel({ token }: { token: string | null }) {
                       <Typography variant="caption" color="text.secondary">{t.admin.standingEvents}</Typography>
                       {standing.events.slice(0, 4).map((event, index) => (
                         <Typography key={`${String(event.createdAt)}-${index}`} variant="caption" color="text.secondary">
-                          {`${String(event.action ?? "")} · ${String(event.reason ?? "")}${event.createdAt ? ` · ${new Date(String(event.createdAt)).toLocaleDateString()}` : ""}`}
+                          {`${String(event.action ?? "")} · ${String(event.reason ?? "")}${event.createdAt ? ` · ${formatDateDMY(String(event.createdAt))}` : ""}`}
                         </Typography>
                       ))}
                     </Box>

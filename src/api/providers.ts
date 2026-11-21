@@ -15,7 +15,9 @@ export type Provider = {
   accepting?: boolean;
   plate?: string | null;
   vehicleType?: string | null;
+  vehicleLabel?: string | null;
   vehicleWidth?: number | null;
+  vehicleHeight?: number | null;
   serviceFee?: number | null;
   serviceUsage?: Record<string, number> | null;
   taxCode?: string | null;
@@ -51,7 +53,12 @@ export type Provider = {
   reviewNote?: string | null;
   applicantEmail?: string | null;
   applicantName?: string | null;
+  applicantPhone?: string | null;
   openReportCount?: number;
+  requestedAt?: string;
+  decidedAt?: string | null;
+  reviewedBy?: string | null;
+  createdAt?: string;
   distanceMeters?: number;
   distance?: number;
   openNow?: boolean | null;
@@ -142,7 +149,14 @@ export function nearProviders(
   lat: number,
   lng: number,
   token: string,
-  options?: { kind?: ProviderKind; radiusMeters?: number; limit?: number },
+  options?: {
+    kind?: ProviderKind;
+    radiusMeters?: number;
+    limit?: number;
+    acceptingOnly?: boolean;
+    openOnly?: boolean;
+    vehicleClass?: "SOLO_BIKE" | "CAR";
+  },
 ): Promise<Provider[]> {
   return api.post<Provider[]>("/providers/near", { lat, lng, ...options }, token);
 }
@@ -152,7 +166,13 @@ export function searchProviders(
   lng: number,
   query: string,
   token: string,
-  options?: { kind?: ProviderKind; limit?: number },
+  options?: {
+    kind?: ProviderKind;
+    limit?: number;
+    acceptingOnly?: boolean;
+    openOnly?: boolean;
+    vehicleClass?: "SOLO_BIKE" | "CAR";
+  },
 ): Promise<Provider[]> {
   return api.post<Provider[]>("/providers/search", { lat, lng, query, ...options }, token);
 }
@@ -186,7 +206,9 @@ export function createTowProvider(
     label?: string;
     plate: string;
     vehicleType: string;
+    vehicleLabel?: string;
     vehicleWidth?: number;
+    vehicleHeight?: number;
     towBaseFee?: number;
     towPerKmFee?: number;
     waitingRatePer15Min?: number;
@@ -204,6 +226,9 @@ export function createMobileShopProvider(
     label?: string;
     plate: string;
     vehicleType: string;
+    vehicleLabel?: string;
+    vehicleWidth?: number;
+    vehicleHeight?: number;
     licenseNumber: string;
     callOutFee?: number;
     travelPerKmFee?: number;
@@ -286,6 +311,28 @@ export function restoreProvider(
 
 export function fetchPendingProviders(token: string): Promise<Provider[]> {
   return api.post<Provider[]>("/providers/pending", {}, token);
+}
+
+export type AdminProviderListFilters = {
+  status?: string;
+  kind?: string;
+  startDate?: string;
+  endDate?: string;
+  limit?: number;
+};
+
+export type AdminProviderList = {
+  total: number;
+  counts: Record<string, number>;
+  kindCounts: Record<string, number>;
+  items: Provider[];
+};
+
+export function fetchAdminProviders(
+  token: string,
+  filters: AdminProviderListFilters = {},
+): Promise<AdminProviderList> {
+  return api.post<AdminProviderList>("/providers/admin/list", filters, token);
 }
 
 export function reviewProvider(

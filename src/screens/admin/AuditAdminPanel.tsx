@@ -15,6 +15,8 @@ import Typography from "@mui/material/Typography";
 import { toMessage } from "../../api/client";
 import { adminAudit, type AdminAuditRow } from "../../api/admin";
 import { useStrings } from "../../context/LanguageContext";
+import DateField from "../../components/DateField";
+import { formatDateTimeDMY } from "../../utils/date";
 import EmptyState from "./EmptyState";
 import PanelHeader from "./PanelHeader";
 import { ago } from "./format";
@@ -69,7 +71,7 @@ function downloadCsv(rows: AdminAuditRow[]): void {
 function sectionForTarget(targetType: string): string | null {
   const type = targetType.toUpperCase();
   if (type === "USER") return "users";
-  if (type.includes("PROVIDER")) return "requests";
+  if (type.includes("PROVIDER")) return "providers";
   if (["REPORT", "DISPUTE", "APPEAL"].includes(type)) return "cases";
   if (type === "REFUND") return "refunds";
   if (type.startsWith("PAYOUT") || type === "COMMISSION") return "payouts";
@@ -237,21 +239,15 @@ export default function AuditAdminPanel({
             <MenuItem key={value} value={value}>{value}</MenuItem>
           ))}
         </TextField>
-        <TextField
-          size="small"
-          type="date"
+        <DateField
           label={t.admin.auditFrom}
           value={from}
-          onChange={(e) => setFrom(e.target.value)}
-          slotProps={{ inputLabel: { shrink: true } }}
+          onChange={setFrom}
         />
-        <TextField
-          size="small"
-          type="date"
+        <DateField
           label={t.admin.auditTo}
           value={to}
-          onChange={(e) => setTo(e.target.value)}
-          slotProps={{ inputLabel: { shrink: true } }}
+          onChange={setTo}
         />
       </Box>
       {error ? <Alert severity="error">{error}</Alert> : null}
@@ -269,7 +265,7 @@ export default function AuditAdminPanel({
               </Typography>
             </Box>
             <Typography variant="caption" color="text.secondary">
-              {`${new Date(row.createdAt).toLocaleString()} · ${row.actorName ?? row.actorEmail ?? row.adminUid} · ${row.targetType}${row.targetId ? ` · ${row.targetId}` : ""}`}
+              {`${formatDateTimeDMY(row.createdAt)} · ${row.actorName ?? row.actorEmail ?? row.adminUid} · ${row.targetType}${row.targetId ? ` · ${row.targetId}` : ""}`}
             </Typography>
             {row.targetLabel ? <Typography variant="body2">{row.targetLabel}</Typography> : null}
             {row.note ? <Typography variant="caption" color="text.secondary">{row.note}</Typography> : null}
@@ -297,7 +293,7 @@ export default function AuditAdminPanel({
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
           {selected ? (
             <>
-              <Typography variant="body2">{`${new Date(selected.createdAt).toLocaleString()} · ${selected.actorName ?? selected.actorEmail ?? selected.adminUid}`}</Typography>
+              <Typography variant="body2">{`${formatDateTimeDMY(selected.createdAt)} · ${selected.actorName ?? selected.actorEmail ?? selected.adminUid}`}</Typography>
               <Typography variant="body2">{`${selected.targetType}${selected.targetId ? ` · ${selected.targetId}` : ""}${selected.targetLabel ? ` · ${selected.targetLabel}` : ""}`}</Typography>
               {selected.note ? <Typography variant="body2">{selected.note}</Typography> : null}
               <Typography variant="subtitle2">{t.admin.auditBefore}</Typography>

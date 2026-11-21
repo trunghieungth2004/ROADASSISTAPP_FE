@@ -1,32 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Alert from "@mui/material/Alert";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
-import ToggleButton from "@mui/material/ToggleButton";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
 import { toMessage } from "../../api/client";
 import { createTicket } from "../../api/dispatch";
 import { nearProviders, type Provider } from "../../api/providers";
 import type { MeVehicle } from "../../api/users";
 import type { Strings } from "../../i18n";
-
-type TicketType = "SOS" | "TOW" | "WALK_IN" | "MECHANIC";
-
-const SYMPTOMS = [
-  "FLAT_TIRE",
-  "FLUID_LEAK",
-  "CHAIN_SLACK",
-  "SPARK_CAP",
-  "ELECTRICAL",
-  "ENGINE",
-  "BRAKES",
-  "OTHER",
-];
 
 function vehicleTypeOf(type: string | undefined): "BIKE" | "CAR" {
   return type === "CAR" ? "CAR" : "BIKE";
@@ -47,8 +31,6 @@ export default function AssistRequestForm({
   activeVehicle: MeVehicle | null;
   onCreated: () => void;
 }) {
-  const [ticketType, setTicketType] = useState<TicketType>("SOS");
-  const [symptom, setSymptom] = useState("FLAT_TIRE");
   const [description, setDescription] = useState("");
   const [shops, setShops] = useState<Provider[]>([]);
   const [shopId, setShopId] = useState("");
@@ -57,20 +39,9 @@ export default function AssistRequestForm({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const isCar = activeVehicle?.type === "CAR";
-  const needsShop = ticketType === "WALK_IN" || ticketType === "TOW";
-  const needsVehicle = ticketType !== "WALK_IN";
-  const availableTypes = useMemo(() => {
-    const types: TicketType[] = ["SOS", "TOW"];
-    if (!isCar) types.push("WALK_IN", "MECHANIC");
-    return types;
-  }, [isCar]);
-
-  useEffect(() => {
-    if (!availableTypes.includes(ticketType)) {
-      setTicketType("SOS");
-    }
-  }, [availableTypes, ticketType]);
+  const ticketType = "WALK_IN";
+  const needsShop = true;
+  const needsVehicle = false;
 
   useEffect(() => {
     if (!point || !token || !needsShop) {
@@ -83,14 +54,21 @@ export default function AssistRequestForm({
     setError(null);
     void nearProviders(point.lat, point.lng, token, {
       kind: "SHOP",
-      radiusMeters: 30000,
-      limit: 50,
+      radiusMeters: 20000,
+      limit: 20,
+      acceptingOnly: true,
+      ...(activeVehicle?.type === "CAR"
+        ? { vehicleClass: "CAR" as const }
+        : { vehicleClass: "SOLO_BIKE" as const }),
     }).then((rows) => {
       if (!alive) return;
       const usable = rows.filter((row) =>
         row.status === "ACTIVE" &&
         row.suspended !== true &&
-        (ticketType !== "WALK_IN" || row.accepting !== false));
+        row.kind === "SHOP" &&
+        row.accepting === true &&
+        (row.services ?? []).some((service) =>
+          service.channels?.includes("ASSIST")));
       setShops(usable);
       setShopId((current) =>
         usable.some((row) => row.id === current) ? current : usable[0]?.id ?? "");
@@ -124,17 +102,13 @@ export default function AssistRequestForm({
         ticketType,
         lat: point.lat,
         lng: point.lng,
-        ...(ticketType === "SOS" || ticketType === "MECHANIC" ?
-          { symptom } :
-          {}),
         ...(description.trim() ? { description: description.trim() } : {}),
         ...(activeVehicle ? {
           vehicleId: activeVehicle.id,
           vehicleType: vehicleTypeOf(activeVehicle.type),
           vehicleWidth: activeVehicle.baseWidth,
         } : {}),
-        ...(ticketType === "WALK_IN" && shopId !== "" ? { providerId: shopId } : {}),
-        ...(ticketType === "TOW" && shopId !== "" ? { destinationShopId: shopId } : {}),
+        providerId: shopId,
       }, token);
       setDescription("");
       setNotice(t.assist.requestSent);
@@ -155,47 +129,13 @@ export default function AssistRequestForm({
         {needsVehicle && !activeVehicle ? (
           <Alert severity="warning">{t.assist.vehicleRequired}</Alert>
         ) : null}
-        <Box>
-          <Typography variant="subtitle2" sx={{ mb: 1 }}>{t.assist.requestType}</Typography>
-          <ToggleButtonGroup
-            exclusive
-            size="small"
-            value={ticketType}
-            onChange={(_, value: TicketType | null) => {
-              if (value !== null) setTicketType(value);
-            }}
-          >
-            {availableTypes.map((type) => (
-              <ToggleButton key={type} value={type}>
-                {type === "SOS" ? t.assist.typeSos :
-                  type === "TOW" ? t.assist.typeTow :
-                    type === "WALK_IN" ? t.assist.typeWalkIn :
-                      t.assist.typeMechanic}
-              </ToggleButton>
-            ))}
-          </ToggleButtonGroup>
-        </Box>
         <Typography variant="body2" color="text.secondary">
           {point ? `${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}` : t.assist.noLocation}
         </Typography>
-        {ticketType === "SOS" || ticketType === "MECHANIC" ? (
-          <TextField
-            select
-            label={t.assist.symptom}
-            value={symptom}
-            onChange={(event) => setSymptom(event.target.value)}
-          >
-            {SYMPTOMS.map((code) => (
-              <MenuItem key={code} value={code}>
-                {(t.provider.categories as Record<string, string>)[code] ?? code}
-              </MenuItem>
-            ))}
-          </TextField>
-        ) : null}
         {needsShop ? (
           <TextField
             select
-            label={ticketType === "TOW" ? t.assist.destinationShop : t.assist.shop}
+            label={t.assist.shop}
             value={shopId}
             onChange={(event) => setShopId(event.target.value)}
             disabled={loading || shops.length === 0}

@@ -1,3 +1,4 @@
+import { formatDateTimeDMY } from "../../utils/date";
 import { useEffect, useState } from "react";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -134,7 +135,7 @@ export default function SupportAdminPanel({ token }: { token: string | null }) {
                     <Chip size="small" label={adminStatusLabel(selected.status, t)} color={adminStatusTone(selected.status)} />
                   </Box>
                   <Typography variant="caption" color="text.secondary">
-                    {`${users.find((user) => user.id === selected.userId)?.displayName ?? selected.userId} · ${new Date(selected.createdAt).toLocaleString()}`}
+                    {`${users.find((user) => user.id === selected.userId)?.displayName ?? selected.userId} · ${formatDateTimeDMY(selected.createdAt)}`}
                   </Typography>
                   {users.find((user) => user.id === selected.userId)?.email ? (
                     <Typography variant="caption" color="text.secondary">

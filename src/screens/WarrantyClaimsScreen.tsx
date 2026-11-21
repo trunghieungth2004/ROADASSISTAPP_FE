@@ -1,3 +1,4 @@
+import { formatDateDMY } from "../utils/date";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Alert from "@mui/material/Alert";
@@ -102,7 +103,7 @@ export default function WarrantyClaimsScreen() {
               </Box>
               <Typography variant="body2">{claim.reason}</Typography>
               <Typography variant="caption" color="text.secondary">
-                {`${t.bills.warranty}: ${new Date(claim.warrantyUntil).toLocaleDateString()}${typeof claim.lineAmount === "number" ? ` · ${claim.lineAmount.toLocaleString()} VND` : ""}`}
+                {`${t.bills.warranty}: ${formatDateDMY(claim.warrantyUntil)}${typeof claim.lineAmount === "number" ? ` · ${claim.lineAmount.toLocaleString()} VND` : ""}`}
               </Typography>
               {claim.declineReasonCode ? (
                 <Typography variant="caption" color="text.secondary">

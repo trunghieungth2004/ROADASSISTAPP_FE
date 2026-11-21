@@ -1,3 +1,4 @@
+import { formatDateDMY } from "../utils/date";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Alert from "@mui/material/Alert";
@@ -12,6 +13,7 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import LinearProgress from "@mui/material/LinearProgress";
 import Switch from "@mui/material/Switch";
 import TextField from "@mui/material/TextField";
+import MenuItem from "@mui/material/MenuItem";
 import Typography from "@mui/material/Typography";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
@@ -35,6 +37,10 @@ import TuneIcon from "@mui/icons-material/Tune";
 import TwoWheelerIcon from "@mui/icons-material/TwoWheeler";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import WorkspacesIcon from "@mui/icons-material/Workspaces";
+import GavelIcon from "@mui/icons-material/Gavel";
+import ReportProblemIcon from "@mui/icons-material/ReportProblem";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import BuildCircleIcon from "@mui/icons-material/BuildCircle";
 import { useColorScheme } from "@mui/material/styles";
 import { toMessage } from "../api/client";
 import {
@@ -56,6 +62,14 @@ import { myBills, type Bill } from "../api/bills";
 import { shopBookings, type Booking } from "../api/bookings";
 import { userRatings } from "../api/ratings";
 import { fetchMyProviders, providerStats as fetchProviderStats, type Provider, type ProviderStats } from "../api/providers";
+import {
+  eligibleAppeals,
+  fileAppeal,
+  type AppealItem,
+  type AppealReason,
+  type EligibleAppeals,
+} from "../api/appeals";
+import { updateProvider } from "../api/providers";
 import { buildProviderDashboard, buildRiderDashboard } from "./more/dashboardData";
 import DashboardDialog from "./more/DashboardDialog";
 import { profileRoleLabel, profileServiceKinds } from "./more/profileKinds";
@@ -82,6 +96,19 @@ export default function MoreScreen() {
   const [stats, setStats] = useState<ProviderStats | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [rating, setRating] = useState({avg: 0, count: 0});
+  const [eligible, setEligible] = useState<EligibleAppeals | null>(null);
+  const [appealFor, setAppealFor] = useState<AppealItem | null>(null);
+  const [appealReason, setAppealReason] = useState<AppealReason>("OTHER");
+  const [appealNote, setAppealNote] = useState("");
+  const [appealBusy, setAppealBusy] = useState(false);
+  const [dutyBusy, setDutyBusy] = useState(false);
+  const appealItems = eligible ?
+    [...eligible.ratings, ...eligible.reports, ...eligible.disputes] :
+    [];
+  const openAppeal = appealItems.some((item) => item.appealStatus === "OPEN");
+  const restricted = user?.bookingBlocked === true ||
+    (typeof user?.restrictedUntil === "string" &&
+      Date.parse(user.restrictedUntil) > Date.now());
 
   const displayName = user?.displayName || user?.email || "—";
   const services = user?.services ?? [];
@@ -90,6 +117,13 @@ export default function MoreScreen() {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+  useEffect(() => {
+    if (!token) {
+      setEligible(null);
+      return;
+    }
+    void eligibleAppeals(token).then(setEligible).catch(() => setEligible(null));
+  }, [token]);
   useEffect(() => {
     if (!token) {
       setBills([]);
@@ -187,6 +221,50 @@ export default function MoreScreen() {
       return;
     }
   }
+
+  async function toggleDuty(provider: Provider): Promise<void> {
+    if (!token || dutyBusy ||
+      provider.status !== "ACTIVE" ||
+      provider.suspended === true) {
+      return;
+    }
+    setDutyBusy(true);
+    setEditError(null);
+    try {
+      await updateProvider({
+        providerId: provider.id,
+        accepting: provider.accepting !== true,
+      }, token);
+      setProviders(await fetchMyProviders(token));
+    } catch (err) {
+      setEditError(toMessage(err));
+    } finally {
+      setDutyBusy(false);
+    }
+  }
+
+  async function submitAppeal(): Promise<void> {
+    if (!token || !appealFor || appealBusy || appealNote.trim().length < 1) {
+      return;
+    }
+    setAppealBusy(true);
+    setEditError(null);
+    try {
+      await fileAppeal({
+        subjectKind: appealFor.subjectKind,
+        subjectId: appealFor.subjectId,
+        reason: appealReason as "OTHER",
+        note: appealNote.trim(),
+      }, token);
+      setAppealFor(null);
+      setAppealNote("");
+      setEligible(await eligibleAppeals(token));
+    } catch (err) {
+      setEditError(toMessage(err));
+    } finally {
+      setAppealBusy(false);
+    }
+  }
   const hasProviderRole = services.some((service) =>
     service === "SHOP" || service === "TOW" || service === "MOBILE_SHOP") ||
     providers.length > 0;
@@ -249,12 +327,81 @@ export default function MoreScreen() {
           <Typography variant="caption">
             {[
               user?.restrictedUntil ?
-                `${t.more.restrictedUntil}: ${new Date(user.restrictedUntil).toLocaleDateString()}` :
+                `${t.more.restrictedUntil}: ${formatDateDMY(user.restrictedUntil)}` :
                 null,
               user?.restrictionReason ?? null,
             ].filter((part): part is string => Boolean(part)).join(" · ")}
           </Typography>
         </Alert>
+      ) : null}
+      {(restricted || openAppeal) ? (
+        <Alert
+          severity={restricted ? "error" : "warning"}
+          icon={<ReportProblemIcon />}
+          sx={{ mt: 2 }}
+        >
+          <Typography variant="body2" sx={{ fontWeight: 700 }}>
+            {restricted ? t.more.restricted : t.more.dashboardPending}
+          </Typography>
+          {openAppeal ? (
+            <Typography variant="caption">{t.more.dashboardHint}</Typography>
+          ) : null}
+        </Alert>
+      ) : null}
+      {appealItems.length > 0 ? (
+        <Box sx={{ mt: 2 }}>
+          <ListCard>
+            {appealItems.map((item) => (
+              <ListRow
+                key={`${item.subjectKind}-${item.subjectId}`}
+                icon={<GavelIcon />}
+                label={item.label}
+                hint={
+                  item.appealStatus === "OPEN"
+                    ? t.more.dashboardPending
+                    : item.appealResolution ?? item.createdAt
+                }
+                onClick={() => setAppealFor(item.canAppeal ? item : null)}
+              />
+            ))}
+          </ListCard>
+        </Box>
+      ) : null}
+      {providers.length > 0 ? (
+        <Box sx={{ mt: 2 }}>
+          <ListCard>
+            {providers.map((provider) => (
+              <ListRow
+                key={provider.id}
+                icon={
+                  provider.kind === "TOW"
+                    ? <LocalShippingIcon />
+                    : <BuildCircleIcon />
+                }
+                label={provider.name}
+                hint={
+                  provider.status !== "ACTIVE" || provider.suspended
+                    ? `${provider.status}${provider.suspended ? " · SUSPENDED" : ""}`
+                    : provider.accepting
+                      ? t.provider.accepting
+                        : t.admin.dutyOff
+                }
+                trailing={
+                  <Switch
+                    checked={provider.accepting === true}
+                    disabled={
+                      dutyBusy ||
+                      provider.status !== "ACTIVE" ||
+                      provider.suspended === true
+                    }
+                    onChange={() => void toggleDuty(provider)}
+                    slotProps={{ input: { "aria-label": provider.name } }}
+                  />
+                }
+              />
+            ))}
+          </ListCard>
+        </Box>
       ) : null}
       <Box sx={{ mt: 2 }}>
         <Card>
@@ -389,7 +536,7 @@ export default function MoreScreen() {
           <ListRow
             icon={<BuildIcon />}
             label={t.assist.title}
-            hint={t.assist.screenHint}
+            hint={t.assist.walkInScreenHint}
             onClick={() => navigate("/dispatch")}
           />
           <ListRow
@@ -421,6 +568,39 @@ export default function MoreScreen() {
         open={dashboardOpen}
         onClose={() => setDashboardOpen(false)}
       />
+      <Dialog open={appealFor !== null} onClose={() => setAppealFor(null)} fullWidth maxWidth="xs">
+        <DialogTitle>{t.more.appealSubject}: {appealFor?.label}</DialogTitle>
+        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+          {editError ? <Alert severity="error">{editError}</Alert> : null}
+          <TextField
+            select
+            label={t.more.appealReason}
+            value={appealReason}
+            onChange={(event) => setAppealReason(event.target.value as AppealReason)}
+          >
+            {["RETALIATORY", "WRONG_TICKET", "NEW_EVIDENCE", "WRONG_OUTCOME", "AMOUNT_ERROR", "PROCEDURAL_ERROR", "OTHER"].map((reason) => (
+              <MenuItem key={reason} value={reason}>{reason}</MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            label={t.more.appealNote}
+            value={appealNote}
+            onChange={(event) => setAppealNote(event.target.value)}
+            multiline
+            minRows={3}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAppealFor(null)}>{t.common.close}</Button>
+          <Button
+            variant="contained"
+            disabled={appealBusy || appealNote.trim().length < 1}
+            onClick={() => void submitAppeal()}
+          >
+            {t.more.appealSubmit}
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} fullWidth maxWidth="xs">
         <DialogTitle>{t.more.editName}</DialogTitle>
         <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>

@@ -1,3 +1,4 @@
+import { formatDateDMY } from "../utils/date";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import Alert from "@mui/material/Alert";
@@ -292,7 +293,7 @@ export default function BillDetailScreen() {
                 )}
                 {item.warrantyUntil && (
                   <Typography variant="body2" color="success.main">
-                    {`${t.bills.warranty}: ${new Date(item.warrantyUntil).toLocaleDateString()}`}
+                    {`${t.bills.warranty}: ${formatDateDMY(item.warrantyUntil)}`}
                   </Typography>
                 )}
                 {item.payeeName && <Typography variant="body2" color="text.secondary">{item.payeeName}</Typography>}
@@ -308,7 +309,7 @@ export default function BillDetailScreen() {
                           {line.warrantyUntil && (
                             <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
                               <Typography variant="caption" color="success.main">
-                                {`${t.bills.warranty}: ${new Date(line.warrantyUntil).toLocaleDateString()}`}
+                                {`${t.bills.warranty}: ${formatDateDMY(line.warrantyUntil)}`}
                               </Typography>
                               {payer && Date.parse(line.warrantyUntil) > Date.now() && line.lineId && (
                                 <Button size="small" sx={{ minWidth: 0, py: 0 }} onClick={() => {
